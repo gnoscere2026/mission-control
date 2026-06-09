@@ -12,9 +12,11 @@
   },
   "dependencies": {
     "@mission-control/db": "*",
-    "drizzle-orm": "^0.44.0"
+    "drizzle-orm": "^0.44.0",
+    "libsodium-wrappers": "^0.8.4"
   },
   "devDependencies": {
+    "@types/libsodium-wrappers": "^0.7.14",
     "tsx": "^4.19.2",
     "vitest": "^3.0.0"
   }
