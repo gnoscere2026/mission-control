@@ -160,7 +160,12 @@ export async function extractCommitmentsFromEpisode(
 
 // Chat captures often name people without an email ("told Sara…"); match an
 // existing person case-insensitively by display name, else create email-less.
-async function findOrCreatePersonByName(db: Db, ownerId: string, name: string): Promise<string> {
+// Also used by the manual-add ledger path (MC-105).
+export async function findOrCreatePersonByName(
+  db: Db,
+  ownerId: string,
+  name: string,
+): Promise<string> {
   const [existing] = await db
     .select({ id: people.id })
     .from(people)
