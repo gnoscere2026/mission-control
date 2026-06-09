@@ -42,6 +42,14 @@ export async function enqueueExtraction(episodeId: string): Promise<void> {
   );
 }
 
+// Test hygiene: vitest hangs on open Redis handles without this.
+export async function closeQueuesForTesting(): Promise<void> {
+  for (const q of queues.values()) await q.close();
+  queues.clear();
+  await connection?.quit().catch(() => undefined);
+  connection = undefined;
+}
+
 export async function enqueueInitialGoogleSync(accountId: string): Promise<void> {
   const ingest = getQueue("ingest");
   await ingest.add(
