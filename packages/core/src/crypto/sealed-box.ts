@@ -1,9 +1,14 @@
 import sodium from "libsodium-wrappers";
 
+interface KeyPair {
+  publicKey: Uint8Array;
+  privateKey: Uint8Array;
+}
+
 // libsodium sealed box over OAuth token JSON (ARCHITECTURE §8.3). The key is a
 // base64 32-byte seed in TOKEN_SEAL_KEY; the curve25519 keypair is derived from
 // it on every call and never stored. KMS slots in behind this same interface.
-async function keypairFrom(seedB64: string | undefined): Promise<sodium.KeyPair> {
+async function keypairFrom(seedB64: string | undefined): Promise<KeyPair> {
   await sodium.ready;
   if (!seedB64) throw new Error("TOKEN_SEAL_KEY is not set");
   let seed: Uint8Array;
@@ -15,7 +20,7 @@ async function keypairFrom(seedB64: string | undefined): Promise<sodium.KeyPair>
   if (seed.length !== sodium.crypto_box_SEEDBYTES) {
     throw new Error(`TOKEN_SEAL_KEY must decode to ${sodium.crypto_box_SEEDBYTES} bytes`);
   }
-  return sodium.crypto_box_seed_keypair(seed);
+  return sodium.crypto_box_seed_keypair(seed, "uint8array");
 }
 
 export async function sealToken(
