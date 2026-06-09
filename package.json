@@ -18,7 +18,9 @@
     "db:migrate": "npm run migrate -w packages/db",
     "db:seed": "npm run seed -w packages/db",
     "db:studio": "npm run studio -w packages/db",
-    "eval": "npm run eval -w evals"
+    "eval": "npm run eval -w evals",
+    "eval:activate": "npm run eval:activate -w evals",
+    "eval:anonymize": "npm run eval:anonymize -w evals"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

@@ -1,0 +1,14 @@
+{
+  "id": "fx-020-receipt",
+  "source_type": "email",
+  "input": {
+    "from": "Billing <billing@initech.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "Your receipt #4821",
+    "occurred_at": "2026-05-12T03:12:00-06:00",
+    "body": "Your payment of $49.00 was processed successfully. This is an automated message — no reply is needed."
+  },
+  "expected": [],
+  "notes": "automated receipt",
+  "anonymized": true
+}

@@ -1,0 +1,30 @@
+{
+  "id": "fx-003-weekday-due",
+  "source_type": "email",
+  "input": {
+    "from": "Jordan Lee <jordan@globex.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "staging build",
+    "occurred_at": "2026-05-12T11:30:00-06:00",
+    "body": "Quick update — we'll push the staging build with the fix by Friday."
+  },
+  "expected": [
+    {
+      "direction": "owed_to_me",
+      "counterparty": "jordan@globex.example",
+      "description_gist": "push staging build with fix",
+      "due": {
+        "date": "2026-05-15",
+        "basis": "explicit"
+      }
+    }
+  ],
+  "notes": "weekday resolution Tue→Fri",
+  "anonymized": true,
+  "aliases": {
+    "jordan@globex.example": [
+      "Jordan",
+      "Jordan Lee"
+    ]
+  }
+}

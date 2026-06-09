@@ -1,0 +1,30 @@
+{
+  "id": "fx-017-buried",
+  "source_type": "email",
+  "input": {
+    "from": "Dana Reyes <dana@acme-co.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "Re: catch-up",
+    "occurred_at": "2026-05-12T17:30:00-06:00",
+    "body": "Fun seeing everyone at the offsite — the new office is great, and glad the rollout went smoothly on your side. Separately: I still owe you the case study draft. I'll have it to you by Thursday. Also say hi to the team for me!"
+  },
+  "expected": [
+    {
+      "direction": "owed_to_me",
+      "counterparty": "dana@acme-co.example",
+      "description_gist": "send case study draft",
+      "due": {
+        "date": "2026-05-14",
+        "basis": "explicit"
+      }
+    }
+  ],
+  "notes": "one commitment buried in social chatter",
+  "anonymized": true,
+  "aliases": {
+    "dana@acme-co.example": [
+      "Dana",
+      "Dana Reyes"
+    ]
+  }
+}

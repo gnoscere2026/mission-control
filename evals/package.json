@@ -6,10 +6,19 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "eval": "tsx src/run.ts"
+    "eval": "tsx src/run.ts",
+    "eval:activate": "tsx src/activate.ts",
+    "eval:anonymize": "tsx src/anonymize.ts"
   },
   "devDependencies": {
     "tsx": "^4.19.2",
     "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "@mission-control/core": "^0.0.1",
+    "@mission-control/db": "^0.0.1",
+    "@mission-control/llm": "^0.0.1",
+    "drizzle-orm": "^0.44.0",
+    "zod": "^4.4.3"
   }
 }

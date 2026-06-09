@@ -7,3 +7,6 @@ coverage/
 .env.local
 .env.*.local
 .DS_Store
+
+# eval fixture staging - raw exports never land in git (EVAL-SPEC 1.2)
+evals/fixtures/_staging/

@@ -1,0 +1,30 @@
+{
+  "id": "fx-004-owner-promise",
+  "source_type": "email",
+  "input": {
+    "from": "Mark <mark@example.com>",
+    "to": "Priya Kaur <priya@initech.example>",
+    "subject": "Re: contract",
+    "occurred_at": "2026-05-12T15:45:00-06:00",
+    "body": "Thanks for your patience here. I'll send the contract over on Friday."
+  },
+  "expected": [
+    {
+      "direction": "owed_by_me",
+      "counterparty": "priya@initech.example",
+      "description_gist": "send contract to Priya",
+      "due": {
+        "date": "2026-05-15",
+        "basis": "explicit"
+      }
+    }
+  ],
+  "notes": "owner's own sent mail — first person = owed_by_me, counterparty is the recipient",
+  "anonymized": true,
+  "aliases": {
+    "priya@initech.example": [
+      "Priya",
+      "Priya Kaur"
+    ]
+  }
+}

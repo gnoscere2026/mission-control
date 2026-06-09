@@ -1,0 +1,14 @@
+{
+  "id": "fx-024-vague-sync",
+  "source_type": "email",
+  "input": {
+    "from": "Jordan Lee <jordan@globex.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "roadmap",
+    "occurred_at": "2026-05-13T15:00:00-06:00",
+    "body": "Let's sync on the roadmap at some point soon — lots of moving pieces."
+  },
+  "expected": [],
+  "notes": "vague intention, no deliverable",
+  "anonymized": true
+}

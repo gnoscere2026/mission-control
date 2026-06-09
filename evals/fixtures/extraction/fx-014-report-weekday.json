@@ -1,0 +1,30 @@
+{
+  "id": "fx-014-report-weekday",
+  "source_type": "email",
+  "input": {
+    "from": "Morgan Diaz <morgan@stark-ind.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "usage report",
+    "occurred_at": "2026-05-12T09:00:00-06:00",
+    "body": "The usage report you asked for — I'll run it and have it to you Wednesday."
+  },
+  "expected": [
+    {
+      "direction": "owed_to_me",
+      "counterparty": "morgan@stark-ind.example",
+      "description_gist": "send usage report",
+      "due": {
+        "date": "2026-05-13",
+        "basis": "explicit"
+      }
+    }
+  ],
+  "notes": "Tue→Wed weekday math",
+  "anonymized": true,
+  "aliases": {
+    "morgan@stark-ind.example": [
+      "Morgan",
+      "Morgan Diaz"
+    ]
+  }
+}

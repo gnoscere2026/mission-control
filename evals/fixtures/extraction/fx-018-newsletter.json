@@ -1,0 +1,14 @@
+{
+  "id": "fx-018-newsletter",
+  "source_type": "email",
+  "input": {
+    "from": "The Weekly Dispatch <newsletter@dispatch.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "This week in product",
+    "occurred_at": "2026-05-12T06:00:00-06:00",
+    "body": "This week: 5 lessons from scaling design systems. Plus: our annual survey is open. Read the full issue online. You're receiving this because you subscribed."
+  },
+  "expected": [],
+  "notes": "newsletter — no commitments",
+  "anonymized": true
+}

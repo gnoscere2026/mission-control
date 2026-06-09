@@ -1,0 +1,30 @@
+{
+  "id": "fx-002-explicit-date",
+  "source_type": "email",
+  "input": {
+    "from": "Sam Ortiz <sam@northwind.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "MSA",
+    "occurred_at": "2026-05-12T09:10:00-06:00",
+    "body": "Legal finished their pass. I'll have the signed MSA back to you on May 20."
+  },
+  "expected": [
+    {
+      "direction": "owed_to_me",
+      "counterparty": "sam@northwind.example",
+      "description_gist": "return signed MSA",
+      "due": {
+        "date": "2026-05-20",
+        "basis": "explicit"
+      }
+    }
+  ],
+  "notes": "explicit calendar date",
+  "anonymized": true,
+  "aliases": {
+    "sam@northwind.example": [
+      "Sam",
+      "Sam Ortiz"
+    ]
+  }
+}

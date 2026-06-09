@@ -1,0 +1,21 @@
+{
+  "id": "fx-008-chat-contract",
+  "source_type": "chat",
+  "input": {
+    "occurred_at": "2026-05-12T20:15:00-06:00",
+    "body": "told Sara I'd send the contract Friday"
+  },
+  "expected": [
+    {
+      "direction": "owed_by_me",
+      "counterparty": "Sara",
+      "description_gist": "send Sara the contract",
+      "due": {
+        "date": "2026-05-15",
+        "basis": "explicit"
+      }
+    }
+  ],
+  "notes": "the MC-108 acceptance scenario; name-only counterparty",
+  "anonymized": true
+}
