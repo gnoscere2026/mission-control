@@ -3,6 +3,7 @@ import type { Db } from "@mission-control/db";
 import type { Owner } from "../owner";
 import type { QueueName, Queues } from "../queues";
 import { makeBriefsProcessor } from "./briefs";
+import { makeIngestProcessor } from "./ingest";
 import { makeNotifyProcessor } from "./notify";
 
 export interface JobContext {
@@ -17,6 +18,8 @@ export function makeProcessor(name: QueueName, ctx: JobContext): Processor {
   switch (name) {
     case "briefs":
       return makeBriefsProcessor(ctx);
+    case "ingest":
+      return makeIngestProcessor(ctx);
     case "notify":
       return makeNotifyProcessor(ctx);
     default:
