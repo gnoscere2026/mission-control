@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "@mission-control/web",
   "version": "0.0.1",
   "private": true,
@@ -13,7 +13,9 @@
   "dependencies": {
     "@mission-control/core": "*",
     "@mission-control/db": "*",
+    "bullmq": "^5.78.0",
     "drizzle-orm": "^0.44.0",
+    "ioredis": "5.10.1",
     "iron-session": "^8.0.4",
     "next": "^15.1.0",
     "react": "^19.0.0",

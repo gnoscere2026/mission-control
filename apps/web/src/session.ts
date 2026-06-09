@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 export interface SessionData {
   ownerId?: string;
+  oauthState?: string; // CSRF state for the in-flight Google OAuth round-trip
 }
 
 export const SESSION_COOKIE = "mc_session";
