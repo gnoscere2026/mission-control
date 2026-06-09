@@ -1,6 +1,7 @@
 import { UnrecoverableError, type Processor } from "bullmq";
 import {
   appendRunStep,
+  createGcalClient,
   createGmailClient,
   getGoogleAccount,
   getValidAccessToken,
@@ -9,8 +10,10 @@ import {
   listGoogleAccounts,
   quarterHourStampInDenver,
   ReauthRequiredError,
+  syncGcal,
   syncGmail,
   withCadenceRun,
+  type GcalSyncResult,
   type GmailSyncResult,
 } from "@mission-control/core";
 import { createWebPushClient, sendPushToOwner } from "../delivery/push";
@@ -27,8 +30,8 @@ export interface IngestDeps {
     db: JobContext["db"],
     ownerId: string,
     accountId: string,
-    deps: { client: unknown },
-  ) => Promise<unknown>;
+    deps: { client: ReturnType<typeof createGcalClient> },
+  ) => Promise<GcalSyncResult>;
   sendReauthAlert?: (ctx: JobContext, email: string) => Promise<void>;
   now?: () => Date;
 }
@@ -120,22 +123,29 @@ export function makeIngestProcessor(ctx: JobContext, deps: IngestDeps = {}): Pro
             };
           }
 
-          // ingest_gcal — handler lands with MC-103 (Task 6 wires syncGcalImpl)
-          if (!deps.syncGcalImpl) {
-            throw new Error("ingest_gcal has no handler yet (MC-103)");
-          }
-          const result = await deps.syncGcalImpl(ctx.db, ctx.owner.id, accountId, {
-            client: undefined,
-          });
+          // ingest_gcal (MC-103): events + episodes; no extraction enqueue in Phase 1
+          const syncImpl = deps.syncGcalImpl ?? syncGcal;
+          const client = createGcalClient(() =>
+            getValidAccessToken(ctx.db, ctx.owner.id, accountId),
+          );
+          const result = await syncImpl(ctx.db, ctx.owner.id, accountId, { client });
           await appendRunStep(ctx.db, {
             runId,
             seq: 1,
             name: "sync",
             status: "ok",
             startedAt: stepStart,
-            detail: result as Record<string, unknown>,
+            detail: {
+              mode: result.mode,
+              eventsSeen: result.eventsSeen,
+              newEpisodes: result.newEpisodeIds.length,
+            },
           });
-          return result;
+          return {
+            mode: result.mode,
+            eventsSeen: result.eventsSeen,
+            newEpisodes: result.newEpisodeIds.length,
+          };
         } catch (err) {
           if (err instanceof ReauthRequiredError) {
             // fresh flip: alert once, then fail without retries
