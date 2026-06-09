@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import sodium from "libsodium-wrappers";
 import { createDb, googleAccounts, users, type Db } from "@mission-control/db";
-import { sealToken, unsealToken } from "../crypto";
+import { unsealToken } from "../crypto";
 import { GOOGLE_SCOPES, ReauthRequiredError, type GoogleTokens } from "./oauth";
 import { getValidAccessToken } from "./tokens";
 import { upsertGoogleAccount } from "./accounts";
