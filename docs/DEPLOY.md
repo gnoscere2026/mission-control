@@ -1,4 +1,4 @@
-# Deploy Runbook — Railway (Phase 0)
+# Deploy Runbook — Railway (Phase 0 + Phase 1)
 
 Everything in this file requires **Mark's accounts/devices** (GitHub, Railway, SMTP, the iPhone). All code, tests, and CI are already in the repo; this is the one-time provisioning checklist plus the Phase-0 exit-criteria drill.
 
@@ -57,7 +57,46 @@ Any SMTP relay works (the mirror is ~plain text to your own inbox). Easiest: a G
 3. Open the installed app → Settings → **Enable push** → accept the permission prompt.
 4. Desktop Chrome: same Settings page, Enable push directly.
 
-## 7. Phase-0 exit-criteria drill (BUILD-PLAN)
+## 7. Phase 1 provisioning (MC-101…108) — Mark's checklist
+
+### 7.1 Google OAuth app (consumer, Testing status — R2)
+
+1. [Google Cloud Console](https://console.cloud.google.com) → new project (e.g. `mission-control`).
+2. **APIs & Services → Library**: enable **Gmail API** and **Google Calendar API**.
+3. **OAuth consent screen**: External, publishing status **Testing** (deliberate — see RISK-REGISTER R2; refresh tokens expire ~weekly, the app handles re-consent with a push alert + settings banner). Add your Gmail address(es) as **test users**.
+4. Scopes: only `gmail.readonly` and `calendar.readonly` (a repo test pins this list).
+5. **Credentials → Create OAuth client ID → Web application**: authorized redirect URI = `<NEXT_PUBLIC_APP_URL>/api/google/callback` (add `http://localhost:3000/api/google/callback` for local dev). Copy client ID + secret.
+
+### 7.2 New env vars (both Railway services + local `.env`)
+
+| Var | Value |
+|---|---|
+| `TOKEN_SEAL_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` — now **required** |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | from 7.1 step 5 |
+| `ANTHROPIC_API_KEY` | from console.anthropic.com (worker + local; web doesn't need it) |
+
+### 7.3 GitHub secret for the eval CI gate
+
+Repo → Settings → Secrets and variables → Actions → add `ANTHROPIC_API_KEY`. The `Evals` workflow (`.github/workflows/evals.yml`) re-runs the harness on any PR touching `packages/core/src/extraction/**` and fails if the committed results file is missing or disagrees.
+
+### 7.4 Eval baseline (once, local)
+
+```sh
+docker compose up -d
+npm run eval -- --task cos.extract_commitments   # runs 26 fixtures against Haiku (costs cents)
+git add evals/results evals/.judge-cache.json && git commit -m "eval(MC-106): baseline v1 results"
+npm run eval:activate                            # writes the prompt_versions row from the committed file
+```
+
+### 7.5 Phase-1 exit-criteria drill (BUILD-PLAN)
+
+1. Settings → **Connect Google** → consent → episodes appear (30-day backfill, no queue flood — backfill never enqueues extraction).
+2. Send yourself an email containing a promise ("I'll send you the numbers by Friday") → a candidate appears in `/queue` within 15 min (working hours).
+3. Type "told Sara I'd send the contract Friday" into `/capture` → candidate renders inline within seconds; confirm it → lands in `/commitments`.
+4. Confirm one candidate and reject another → two `extraction_labels` rows (SQL console spot-check).
+5. `/runs` shows `ingest_gmail` / `ingest_gcal` / `extract_commitments` green; force a failure (revoke the app's access at myaccount.google.com → Security) → red `reauth_required` run + push alert + settings banner; reconnect restores ingest without redeploy.
+
+## 8. Phase-0 exit-criteria drill (BUILD-PLAN)
 
 1. **7 AM delivery:** next morning at 7:00 AM MT a push lands on the installed PWA *and* the mirror email arrives. (Impatient path: `railway run -s worker npm run trigger:brief -w apps/worker` — same jobId/dedupe semantics.)
 2. **Idempotency:** trigger the brief, kill the worker service mid-run, redeploy/restart, trigger again — `briefs` has exactly one row for today (`dedupe_key = morning:<date>`), no duplicate email.
