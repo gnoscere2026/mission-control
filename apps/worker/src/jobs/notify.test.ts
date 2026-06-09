@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Job } from "bullmq";
 import { desc, eq } from "drizzle-orm";
-import { briefs, cadenceRuns, createDb, users, type Db } from "@mission-control/db";
+import { briefs, cadenceRuns, createDb, pushSubscriptions, runSteps, users, type Db } from "@mission-control/db";
 import { generateHelloBrief } from "@mission-control/core";
 import { makeNotifyProcessor } from "./notify";
 import type { JobContext } from "./index";
@@ -51,6 +51,37 @@ describe("notify processor", () => {
     expect(sent[0]?.subject).toContain("Morning Brief");
     const [brief] = await db.select().from(briefs).where(eq(briefs.id, briefId));
     expect(brief?.emailedAt).not.toBeNull();
+  });
+
+  it("push success sets pushed_at and records per-channel run steps", async () => {
+    await db
+      .insert(pushSubscriptions)
+      .values({ ownerId: ctx.owner.id, endpoint: `https://push.example/notify-${Date.now()}`, p256dh: "p", auth: "a" })
+      .onConflictDoNothing();
+    const processor = makeNotifyProcessor(ctx, {
+      email: { send: async () => undefined },
+      push: { send: async () => undefined },
+    });
+    const briefId = await makeBrief("push");
+    const jobId = `push-ok-${Date.now()}`;
+
+    const result = (await processor(fakeJob(briefId, jobId), undefined as never)) as {
+      emailed: boolean;
+      pushed: boolean;
+    };
+    expect(result.pushed).toBe(true);
+
+    const [brief] = await db.select().from(briefs).where(eq(briefs.id, briefId));
+    expect(brief?.pushedAt).not.toBeNull();
+    expect(brief?.emailedAt).not.toBeNull();
+
+    // per-channel visibility: email + push steps under the run (invariant 7)
+    const [run] = await db
+      .select()
+      .from(cadenceRuns)
+      .where(eq(cadenceRuns.jobId, `notify-test-${jobId}`));
+    const steps = await db.select().from(runSteps).where(eq(runSteps.runId, run!.id));
+    expect(steps.map((s) => `${s.name}:${s.status}`).sort()).toEqual(["email:ok", "push:ok"]);
   });
 
   it("SMTP failure → failed cadence_runs row, error propagated (no swallowing)", async () => {

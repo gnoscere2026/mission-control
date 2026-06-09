@@ -1,5 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
-import { briefs, cadenceRuns, users, type Db } from "@mission-control/db";
+import { briefs, cadenceRuns, pushSubscriptions, users, type Db } from "@mission-control/db";
+import type { SubscriptionPayload } from "./push";
 
 // Every helper takes ownerId — no ownerless query path exists (invariant 1).
 
@@ -31,6 +32,34 @@ export async function getBrief(db: Db, ownerId: string, id: string) {
     .from(briefs)
     .where(and(eq(briefs.ownerId, ownerId), eq(briefs.id, id)));
   return row;
+}
+
+// Re-subscribing the same endpoint refreshes keys and revives a pruned sub.
+export async function upsertPushSubscription(
+  db: Db,
+  ownerId: string,
+  sub: SubscriptionPayload,
+  userAgent?: string | null,
+) {
+  await db
+    .insert(pushSubscriptions)
+    .values({
+      ownerId,
+      endpoint: sub.endpoint,
+      p256dh: sub.keys.p256dh,
+      auth: sub.keys.auth,
+      userAgent: userAgent ?? undefined,
+    })
+    .onConflictDoUpdate({
+      target: [pushSubscriptions.ownerId, pushSubscriptions.endpoint],
+      set: {
+        p256dh: sub.keys.p256dh,
+        auth: sub.keys.auth,
+        failureCount: 0,
+        disabledAt: null,
+        userAgent: userAgent ?? undefined,
+      },
+    });
 }
 
 export async function listRecentRuns(db: Db, ownerId: string, limit = 50) {
