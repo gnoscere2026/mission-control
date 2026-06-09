@@ -1,0 +1,10 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`renderBriefEmail > renders the plain email mirror (snapshot) 1`] = `
+{
+  "subject": "Mission Control — Morning Brief (2026-06-09)",
+  "text": "# Good morning — Mission Control
+
+Walking-skeleton brief for **2026-06-09**.",
+}
+`;
