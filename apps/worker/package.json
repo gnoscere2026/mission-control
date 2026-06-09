@@ -1,0 +1,29 @@
+{
+  "name": "@mission-control/worker",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "trigger:brief": "tsx src/trigger-brief.ts"
+  },
+  "dependencies": {
+    "@mission-control/core": "*",
+    "@mission-control/db": "*",
+    "bullmq": "^5.34.0",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.44.0",
+    "ioredis": "5.10.1",
+    "nodemailer": "^6.9.16",
+    "tsx": "^4.19.2",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^6.4.17",
+    "@types/web-push": "^3.6.4",
+    "vitest": "^3.0.0"
+  }
+}

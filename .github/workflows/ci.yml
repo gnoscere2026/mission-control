@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mission_control
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mission_control"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/mission_control
+      REDIS_URL: redis://localhost:6379
+      USER_EMAIL: ci@example.com
+      USER_NAME: CI
+      SESSION_SECRET: ci-only-session-secret-0123456789abcdef
+      SESSION_PASSWORD: ci-only-password
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # Check 4: migrations apply on a clean Postgres (the service container is fresh)
+      - name: Migration check (clean apply)
+        run: npm run db:migrate
+
+      # Check 5: schema drift — generate must be a no-op against committed migrations
+      - name: Drift check
+        run: |
+          npm run db:generate
+          git add -N packages/db/migrations
+          git diff --exit-code -- packages/db/migrations
+
+      - name: Seed
+        run: npm run db:seed
+
+      - name: Test
+        run: npm run test
