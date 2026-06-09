@@ -12,8 +12,10 @@
   },
   "dependencies": {
     "@mission-control/db": "*",
+    "@mission-control/llm": "^0.0.1",
     "drizzle-orm": "^0.44.0",
-    "libsodium-wrappers": "^0.8.4"
+    "libsodium-wrappers": "^0.8.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/libsodium-wrappers": "^0.7.14",
