@@ -4,6 +4,18 @@ Single-user proactive chief-of-staff engine: a cadence engine that observes (Gma
 
 ## Language
 
+**Brief**:
+A generated artifact delivered to the owner — morning, EOD close, weekly review, or prep brief. Content never changes after generation.
+_Avoid_: packet, report
+
+**Prep Brief**:
+The brief generated ~45 minutes before a flagged meeting, carrying counterparty and commitment context.
+_Avoid_: prep packet, meeting packet
+
+**ContextPacket**:
+The persisted, assembled input handed to a generation task; every brief traces back to exactly one.
+_Avoid_: bare "packet" for anything else
+
 **Candidate**:
 A commitment as extraction produced it, awaiting the owner's first disposition; not yet part of the ledger.
 

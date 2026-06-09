@@ -8,7 +8,7 @@ This document covers deliverable §9.1 of the planning brief: monorepo layout, p
 
 ## 1. Overview & Architectural Invariants
 
-Mission Control is a **proactive cadence engine with chat bolted on**. The system's atomic unit is a recurring operating rhythm executed by a background worker: ingest (Gmail/GCal/manual capture) → reconcile against the Commitment Ledger → generate artifacts (briefs, prep packets) → deliver (push + email mirror) — on a schedule, whether or not the user opens the app. The web app is the approval and reading surface, not the engine.
+Mission Control is a **proactive cadence engine with chat bolted on**. The system's atomic unit is a recurring operating rhythm executed by a background worker: ingest (Gmail/GCal/manual capture) → reconcile against the Commitment Ledger → generate briefs (morning, EOD, weekly, prep) → deliver (push + email mirror) — on a schedule, whether or not the user opens the app. The web app is the approval and reading surface, not the engine.
 
 Four invariants from brief §2.4 are structural commitments. Every design decision below must preserve them, because they are expensive to retrofit:
 
@@ -49,6 +49,8 @@ One dashboard runs all four processes from one repo: the Next.js web service, th
 
 Store a per-account `historyId` cursor. Each sync run calls `users.history.list` from the cursor, fetches new message IDs via `users.messages.get`, and advances the cursor. On cursor expiry (Gmail returns 404 when the history is too old), fall back to a bounded re-list (`users.messages.list` with an `after:` query from the last successful sync) and reset the cursor.
 
+**First sync (no cursor exists yet):** at OAuth connect, run the same fallback re-list path with `after:` = connect − 30 days — writing episodes and resolving people / `last_contact_at`, but **not** enqueueing extraction for backfilled episodes. Backfilled history is context (prep briefs, reconciliation evidence, person records), not a confirmation-queue flood (R3: queue noise is the existential risk). Then set the cursor from the current profile `historyId`; extraction applies only to content arriving after connect. In-flight commitments are added manually via the ledger UI.
+
 Quota math: `history.list` = 2 units, `messages.get` = 5 units. At 96 polls/day × (2 + ~50 messages/day × 5) ≈ **25K units/day**, against a 1B units/day project quota and 250 units/sec/user — four-plus orders of magnitude of headroom. Pub/Sub push would add a public webhook endpoint and a GCP topic to buy latency the 15-minute cadence (§2.5) doesn't need. Revisit only if a future feature needs sub-minute ingest.
 
 ### 2.4 Web push: standard Web Push API (VAPID), no FCM/OneSignal
@@ -72,7 +74,7 @@ The tier map lives in `packages/llm` config; models are referenced by tier every
 | `cheap` | `claude-haiku-4-5` | Commitment extraction, episode summarization, embedding-adjacent classification | $1 / $5 |
 | `top` | `claude-opus-4-8` | Morning Brief, EOD Close, Weekly Review, Meeting Prep synthesis | $5 / $25 | 
 
-A `mid` tier (`claude-sonnet-4-6`, $3/$15) is reserved in the config shape but unused in v1 — swapping any tier is a config change plus an eval run, never a code change. Daily cost ceiling is a brief-level KPI; the activity log's per-call cost records are the instrumentation (risk-register deliverable owns the threshold).
+A `mid` tier (`claude-sonnet-4-6`, $3/$15) is reserved in the config shape and used only by ask-the-ledger chat (`cos.chat`, Phase 4) — swapping any tier is a config change plus an eval run, never a code change. Daily cost ceiling is a brief-level KPI; the activity log's per-call cost records are the instrumentation (risk-register deliverable owns the threshold).
 
 ---
 
@@ -174,7 +176,7 @@ Annotations:
 | `ingest` | Repeatable schedule (every 15 min, working hours, `America/Denver`) | Gmail history sync, GCal delta sync → `Episode` rows |
 | `extraction` | **Enqueued by ingest completions and manual captures** (event-driven, per brief §2.5 "on new ingested content") | Commitment-candidate extraction (cheap tier, forced tool-use) |
 | `reconciliation` | Repeatable schedule (nightly) | Match new episodes against open commitments: done / slipped / contradicted |
-| `briefs` | Repeatable schedules (7:00 AM daily, 4:30 PM workdays, Sun 7:00 PM) + meeting-prep scheduler | ContextPacket assembly → top-tier generation → `Brief` row |
+| `briefs` | Repeatable schedules (7:00 AM daily, 4:30 PM workdays, Sun 7:00 PM) + meeting-prep scheduler | **Inline pre-sync** (fresh Gmail+GCal sync as the first run-step — artifacts fire outside the ingest window and must not render stale data; on sync failure proceed with stale data, mark the step failed, note staleness in packet meta) → ContextPacket assembly → top-tier generation → `Brief` row |
 | `notify` | Enqueued by brief completions | Web push send + email mirror + delivery-status recording |
 
 Meeting prep is the one schedule that isn't a fixed cron: a lightweight repeatable scan job watches flagged calendar events and enqueues a `briefs` job with a **delayed** BullMQ schedule targeting T−45 min for each.
@@ -183,7 +185,7 @@ Meeting prep is the one schedule that isn't a fixed cron: a lightweight repeatab
 
 Per brief §2.5: every job idempotent, retried with backoff, failures loudly visible.
 
-- **Deterministic job IDs.** Every job is enqueued with a natural key as its BullMQ `jobId` — `morning-brief:2026-06-09`, `ingest:gmail:2026-06-09T13:15`, `extract:episode:<episode_id>`, `meeting-prep:<event_id>`. Re-enqueueing the same logical work is a no-op; a crashed-and-restarted scheduler cannot double-generate a brief.
+- **Deterministic job IDs.** Every job is enqueued with a natural key as its BullMQ `jobId` — `morning-brief:2026-06-09`, `ingest:gmail:<account_id>:2026-06-09T13:15` (account-scoped — multiple Gmail accounts are an expected growth path, R2), `extract:episode:<episode_id>`, `meeting-prep:<event_id>`. Re-enqueueing the same logical work is a no-op; a crashed-and-restarted scheduler cannot double-generate a brief.
 - **Upsert-by-source-ref writes.** Ingest keys episodes on `(source, raw_ref)`; extraction keys candidates on `(source_ref, extraction content hash)`. Replaying a job converges instead of duplicating.
 - **Retries:** BullMQ exponential backoff (e.g., 5 attempts, base 30s) for transient failures (Google 5xx, provider overload). Zod-validation failures get exactly one schema-feedback retry inside the job (see §2.6) before counting as a job failure.
 - **Terminal failures are records, not logs.** A job that exhausts retries writes a failed `CadenceRun` row with the error and context. The web app's run-health page is a query over `CadenceRun` — "the Morning Brief did not go out" is a red row Mark sees in-app (and the previous day's brief email not arriving is the out-of-band signal). No silent failures.
@@ -226,6 +228,7 @@ sequenceDiagram
     W->>DB: status updates (done? slipped? contradicted?)<br/>flagged ones queued for confirmation, not auto-closed
 
     Note over W: 7:00 AM America/Denver — jobId morning-brief:YYYY-MM-DD
+    W->>G: inline pre-sync (gmail + gcal) — the 7 AM run is outside<br/>the ingest window; degrade to stale data on failure, never skip the brief
     W->>DB: assemble ContextPacket: date/schedule,<br/>open commitments (ranked by due/age/counterparty),<br/>semantic memories (vector + recency), related episodes,<br/>preferences, safety/format instructions
     W->>DB: persist ContextPacket (traceability)
     W->>L: generate brief (top tier, structured output)
@@ -253,7 +256,7 @@ Function over form (§2.4) — these are thin pages over `core` services:
 | Confirmation queue | One-tap confirm / edit / reject of commitment candidates; rejections recorded as labeled eval signal |
 | Brief reader | Renders structured brief JSON; sets `opened_at` on view |
 | Commitment ledger | Open/owed-to-me/snoozed views, ranked; manual add/edit |
-| Quick-capture + chat | Text box and chat; captures run the same extraction path as ingest |
+| Quick-capture chat | Chat-shaped capture: every message becomes an episode + extraction, candidates render inline (Phase 1, MC-108); Phase 4 upgrades it to retrieval-grounded ask-the-ledger chat, drafts-only (MC-406) |
 | Run health | Reads `CadenceRun`: last runs per job, failures in red, retry button |
 | Settings | Google OAuth connect, push enable + iOS install instructions, working-hours window |
 

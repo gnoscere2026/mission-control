@@ -37,11 +37,15 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-// One row per connected Google account (v1: exactly one).
+// One row per connected Google account. v1 starts with one, but multiple Gmail
+// accounts are an expected growth path (R2 decision) — nothing assumes a single row.
 export const googleAccounts = pgTable("google_accounts", {
   id: uuid("id").primaryKey().defaultRandom(),
   ownerId: uuid("owner_id").notNull().references(() => users.id),
   email: text("email").notNull(),
+  // active | reauth_required — Testing-status OAuth app expires refresh tokens ~weekly
+  // (RISK-REGISTER R2); the re-consent flow flips this back to active.
+  status: text("status").notNull().default("active"),
   // libsodium sealed box over the OAuth token JSON; key in platform env (ARCHITECTURE §8.3)
   encryptedTokens: text("encrypted_tokens").notNull(),
   scopes: text("scopes").array().notNull(),
@@ -123,8 +127,10 @@ export const episodes = pgTable("episodes", {
   summary: text("summary"),
   rawRef: text("raw_ref"),            // e.g. Gmail message id, GCal event id
   payload: jsonb("payload"),          // source-shaped detail (headers, snippet, attendee list…)
+  // knowable at insert (sender/attendee resolution happens during ingest).
+  // No related_commitment_ids: commitments didn't exist yet when the episode froze —
+  // derive the reverse via commitments.source_episode_id / proposals.evidence_episode_id.
   relatedPersonIds: uuid("related_person_ids").array().notNull().default(sql`'{}'`),
-  relatedCommitmentIds: uuid("related_commitment_ids").array().notNull().default(sql`'{}'`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   // Ingest idempotency: replaying a sync converges (ARCHITECTURE §5.2)
@@ -208,8 +214,8 @@ export const calendarEvents = pgTable("calendar_events", {
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
   endsAt: timestamp("ends_at", { withTimezone: true }),
   attendees: jsonb("attendees"),                        // [{email, displayName, personId?}]
-  flagged: boolean("flagged").notNull().default(false), // prep-packet flag (rules + manual toggle)
-  prepBriefId: uuid("prep_brief_id"),                   // set when the T−45 packet generates
+  flagged: boolean("flagged").notNull().default(false), // prep-brief flag (rules + manual toggle)
+  prepBriefId: uuid("prep_brief_id"),                   // set when the T−45 prep brief generates
   status: text("status").notNull().default("confirmed"),// confirmed | cancelled
   raw: jsonb("raw"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -438,3 +444,4 @@ export const promptVersions = pgTable("prompt_versions", {
 | "reconciliation → proposals" (invariant, no shape) | `reconciliation_proposals` table | the queue must show a proposal *before* any disposition exists; evidence + history need rows, not `user_actions` payloads |
 | `CadenceRun/ActivityLog` (one concept) | 4 tables: runs, steps, model_calls, user_actions | distinct write paths and query shapes; all append-only |
 | `status` includes `snoozed` | snooze = `snoozed_until` timestamp only | a status needs a waker, which violates invariant 5 (dispositions only); a timestamp wakes by WHERE clause — no job, no exception |
+| `Episode.related_commitment_ids[]` | dropped | unpopulatable on an append-only table (commitments exist only after the episode is frozen); the FKs on commitments/proposals already point the other way |

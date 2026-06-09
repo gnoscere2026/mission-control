@@ -43,7 +43,7 @@ Never use `drizzle-kit push` outside a throwaway local DB. Deploy = push to `mai
 - [ ] Migrations generated, committed, applied locally; CI migration + drift checks green
 - [ ] New write paths covered by the activity log (which `cadence_runs`/`user_actions`/`model_calls` rows does this produce? — name them in the PR)
 - [ ] Error visibility verified: force the failure path once, see it on `/runs`
-- [ ] **If extraction prompts/schemas were touched:** `npm run eval` run, results in `prompt_versions`, P/R vs. baseline stated in the PR
+- [ ] **If extraction prompts/schemas were touched:** `npm run eval` run, results file committed to `evals/results/`, P/R vs. the active version's committed baseline stated in the PR (`prompt_versions` row is written at activation — see EVAL-SPEC §5)
 - [ ] Typecheck, lint, tests green; `docs/INSIGHTS.md` updated if anything was learned
 
 ## Conventions

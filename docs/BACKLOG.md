@@ -46,17 +46,17 @@ Repeatable job `morning_brief` (7:00 AM `America/Denver`), jobId `morning-brief:
 ## Epic E1 — Ledger (Phase 1)
 
 ### MC-101 · Google OAuth + sealed-box token storage
-OAuth connect flow requesting exactly `gmail.readonly` + `calendar.readonly`; callback stores tokens via `core/crypto` (libsodium sealed box, key from `TOKEN_SEAL_KEY`); refresh handling; settings page connect/disconnect; `user_actions` records connect events.
-**AC:** connect from settings → `google_accounts` row with encrypted tokens (verify ciphertext in SQL console); an expired access token transparently refreshes on next use.
-**Tests:** seal/unseal round-trip; refresh path with mocked Google token endpoint; scope list asserted — a PR that widens scopes must fail a test.
+OAuth connect flow requesting exactly `gmail.readonly` + `calendar.readonly`; callback stores tokens via `core/crypto` (libsodium sealed box, key from `TOKEN_SEAL_KEY`); refresh handling; settings page connect/disconnect; `user_actions` records connect events. **R2 decision (made):** the OAuth app stays in **Testing** status on consumer Gmail (multiple Gmail accounts are expected to be linked over time; a Workspace seat per account doesn't scale) — so refresh tokens expire every ~7 days and the re-auth path is core scope, not contingency: on `invalid_grant`, set `google_accounts.status='reauth_required'`, send a push alert + settings banner with one-tap re-consent; ingest jobs for that account fail fast and visibly (failed `cadence_runs` row, reason `reauth_required`) instead of crash-looping.
+**AC:** connect from settings → `google_accounts` row with encrypted tokens (verify ciphertext in SQL console); an expired access token transparently refreshes on next use; a simulated `invalid_grant` flags the account, lands a push alert, and one-tap re-consent restores ingest without a redeploy.
+**Tests:** seal/unseal round-trip; refresh path with mocked Google token endpoint; `invalid_grant` → `reauth_required` + alert + visible failed run; scope list asserted — a PR that widens scopes must fail a test.
 
 ### MC-102 · Gmail ingest
-`ingest_gmail` job (every 15 min, working-hours window from `user_preferences`): `history.list` from cursor → `messages.get` (metadata + body excerpt) → `episodes` upsert on `(owner, source, raw_ref)`; cursor advance; 404-cursor fallback (`messages.list` `after:` last sync, reset cursor); sender resolution against `people.emails` (auto-create person, set `last_contact_at`); enqueue one `extraction` job per new episode; run steps recorded.
+`ingest_gmail` job (every 15 min, working-hours window from `user_preferences`): `history.list` from cursor → `messages.get` (metadata + body excerpt) → `episodes` upsert on `(owner, source, raw_ref)`; cursor advance; 404-cursor fallback (`messages.list` `after:` last sync, reset cursor); **initial sync at connect** = the same fallback path with `after:` = connect − 30 d, episodes + people only — no extraction enqueued for backfill (ARCHITECTURE §2.3), cursor then set from profile `historyId`; sender resolution against `people.emails` (auto-create person, set `last_contact_at`); enqueue one `extraction` job per new (non-backfill) episode; run steps recorded.
 **AC:** send self an email → episode row within 15 min with person linked; replaying the same history window creates zero rows; quota use visible in run meta.
-**Tests:** sync against recorded Gmail API fixtures (happy path, empty delta, 404 fallback); idempotent replay; person create-vs-match.
+**Tests:** sync against recorded Gmail API fixtures (happy path, empty delta, 404 fallback); initial-connect backfill (episodes + people written, zero extraction jobs enqueued); idempotent replay; person create-vs-match.
 
 ### MC-103 · GCal ingest
-`ingest_gcal` in the same cadence: incremental sync via `syncToken` into `calendar_events` (upsert on `gcal_event_id`) + an episode per new/changed event; cancellation handling (`status='cancelled'`); attendee emails resolved to people.
+`ingest_gcal` in the same cadence: incremental sync via `syncToken` into `calendar_events` (upsert on `gcal_event_id`) + an episode per new/changed event; initial sync bounded to `timeMin` = connect − 30 d, no extraction enqueued for backfilled episodes (same rule as MC-102); cancellation handling (`status='cancelled'`); attendee emails resolved to people.
 **AC:** create/move/cancel an event in Google Calendar → row reflects each within 15 min.
 **Tests:** fixture-driven sync incl. token-expiry full resync; upsert convergence; cancellation.
 
@@ -71,9 +71,14 @@ OAuth connect flow requesting exactly `gmail.readonly` + `calendar.readonly`; ca
 **Tests:** disposition state transitions incl. timestamps; label payloads; ownerless access impossible (route guard test).
 
 ### MC-106 · Eval harness v1
-Per [EVAL-SPEC.md](EVAL-SPEC.md): `evals/fixtures/` JSON fixtures (≥25, anonymized via the spec's workflow), runner (`npm run eval -- --task cos.extract_commitments`) computing precision/recall/F1 with the spec's matching rules, results written to `prompt_versions` + printed table; comparison mode against the activated version; CI job (manual dispatch + required when `packages/core/extraction/**` changes).
-**AC:** baseline numbers for prompt v1 recorded; changing a prompt without an eval run fails CI on extraction paths.
+Per [EVAL-SPEC.md](EVAL-SPEC.md): `evals/fixtures/` JSON fixtures (≥25, anonymized via the spec's workflow), runner (`npm run eval -- --task cos.extract_commitments`) computing precision/recall/F1 with the spec's matching rules, results emitted as a **committed** `evals/results/<task>/<version>.json` + printed table (the `prompt_versions` row is written at activation, EVAL-SPEC §5.3; eval `model_calls` go to the local/CI DB, never prod); comparison mode against the active version's committed file; CI job (manual dispatch + required when `packages/core/extraction/**` changes), runner refuses a production `DATABASE_URL`.
+**AC:** baseline numbers for prompt v1 committed in `evals/results/`; changing a prompt without an eval run fails CI on extraction paths.
 **Tests:** runner on a tiny known fixture set asserts exact P/R; matcher unit tests (the spec's match rules).
+
+### MC-108 · Quick-capture chat surface
+`/capture`: chat-shaped log that *is* the quick-capture integration (brief §2.2) — each sent message writes an `episodes` row (`source='chat'`, `type='chat_message'`) and enqueues the standard `extraction` job (web enqueues, worker processes — ARCHITECTURE §4); extracted candidates render inline in the thread for one-tap confirm/reject (same disposition + label writes as MC-105). No generation calls in this ticket — capture and disposition only; pin-to-memory affordance arrives with MC-201; retrieval-grounded chat is MC-406.
+**AC:** typing "told Sara I'd send the contract Friday" yields an inline candidate shortly after; confirming lands it in the ledger with `source_type='chat'`; works on the phone PWA.
+**Tests:** message → episode + extraction enqueue; inline dispositions write `user_actions` + `extraction_labels`; ownerless access impossible.
 
 ### MC-107 · Run-health page
 `/runs`: last run per job with status/duration/attempt, failure rows red with error detail, step drill-down, manual retry button (re-enqueues with same jobId semantics); nav badge when any latest-run failed.
@@ -95,7 +100,7 @@ Per [EVAL-SPEC.md](EVAL-SPEC.md): `evals/fixtures/` JSON fixtures (≥25, anonym
 **Tests:** ranking order; truncation order; determinism snapshot.
 
 ### MC-203 · Real morning brief
-Replace hello-brief content: `cos.morning_brief` prompt + Zod schema (sections: top commitments, today's schedule w/ prep pointers, waiting-fors to nudge — *as drafts*, slipped items), top tier; renderer JSON→md/HTML for reader + email; reader upgrade (sections, links to commitments/people); `opened_at` set on first authenticated view (and `user_actions` `brief_opened`); "why did you say this?" debug view (brief → packet → source rows).
+The generation job opens with an inline pre-sync run-step (fresh Gmail+GCal sync via the MC-102/103 services — 7 AM is outside the ingest window; on failure proceed stale, step marked failed, staleness noted in packet meta). Replace hello-brief content: `cos.morning_brief` prompt + Zod schema (sections: top commitments, today's schedule w/ prep pointers, waiting-fors to nudge — *as drafts*, slipped items), top tier; renderer JSON→md/HTML for reader + email; reader upgrade (sections, links to commitments/people); `opened_at` set on first authenticated view (and `user_actions` `brief_opened`); "why did you say this?" debug view (brief → packet → source rows).
 **AC:** 7 AM brief reflects real ledger + calendar; tapping push → reader → `opened_at` set exactly once; debug view walks to a source email excerpt.
 **Tests:** renderer snapshots; `opened_at` idempotency; generation failure → failed run + **no** brief row + no notify.
 
@@ -115,7 +120,7 @@ Default rule: flag events with ≥1 non-owner attendee; manual flag/unflag toggl
 
 ### MC-302 · T−45 scheduler
 Scan job maintains delayed `briefs` jobs (jobId `meeting_prep:<gcal_event_id>`) at `starts_at − 45 min` for flagged future events; reschedule on time change, cancel on unflag/cancellation; skip if T−45 already past (generate immediately if meeting still ≥10 min out).
-**AC:** move a flagged meeting +2 h → packet time moves; cancel → no packet; flag a meeting starting in 20 min → packet now.
+**AC:** move a flagged meeting +2 h → prep-brief time moves; cancel → no prep brief; flag a meeting starting in 20 min → prep brief now.
 **Tests:** schedule/reschedule/cancel state machine against fixture event mutations; the ≥10-min edge.
 
 ### MC-303 · Person context enrichment
@@ -123,17 +128,17 @@ Attendee→person resolution hardening (multi-email identities, name backfill fr
 **AC:** person page for a frequent counterparty shows an accurate mutual picture; two emails for one human resolve to one person row.
 **Tests:** resolution merge rules; person-page queries.
 
-### MC-304 · Prep packet generation
-`cos.meeting_prep` prompt + schema: who's attending (relationship context), open mutual commitments, what was last discussed (episodes), suggested talking points *as drafts*; packet→generate→deliver via the existing pipeline (`kind='meeting_prep'`, dedupe `meeting_prep:<event_id>`); push copy includes meeting title + time.
+### MC-304 · Prep brief generation
+`cos.meeting_prep` prompt + schema: who's attending (relationship context), open mutual commitments, what was last discussed (episodes), suggested talking points *as drafts*; packet→generate→deliver via the existing pipeline incl. the inline pre-sync step (early-morning meetings fire before the ingest window opens) (`kind='meeting_prep'`, dedupe `meeting_prep:<event_id>`); push copy includes meeting title + time.
 **AC:** the BUILD-PLAN Phase-3 exit scenario end-to-end on a real meeting.
-**Tests:** packet recipe for meeting context; dedupe on event reschedule (regenerate policy: cancel-then-new jobId carries a `:2` suffix — second packet allowed, both traceable).
+**Tests:** packet recipe for meeting context; dedupe on event reschedule (regenerate policy: cancel-then-new jobId carries a `:2` suffix — second prep brief allowed, both traceable).
 
 ---
 
 ## Epic E4 — Full Cadence (Phase 4)
 
 ### MC-401 · Reconciliation v2
-Nightly `reconcile` job: candidate matches between last-24 h episodes and open commitments (heuristics: same counterparty + reply-thread linkage + embedding similarity of episode↔commitment text); writes `reconciliation_proposals` rows (`done` / `slipped` / `contradicted`, with `evidence_episode_id`, rationale, confidence, `proposed_changes`) surfaced as a distinct confirmation-queue section — never auto-closes. A disposition resolves the proposal row (`accepted`/`rejected` + `resolved_at`), writes `user_actions`, and only an accepted proposal updates commitment status.
+Nightly `reconcile` job: candidate matches between last-24 h episodes and open commitments (heuristics: same counterparty + reply-thread linkage + embedding similarity of episode↔commitment text — embeddings computed on the fly at run time via `embed()` (`embed.reconcile` task, cost-tracked), compared in memory, nothing stored; graduate to stored embedding columns only if the cost ticker objects — additive migration per SCHEMA §3.4); writes `reconciliation_proposals` rows (`done` / `slipped` / `contradicted`, with `evidence_episode_id`, rationale, confidence, `proposed_changes`) surfaced as a distinct confirmation-queue section — never auto-closes. A disposition resolves the proposal row (`accepted`/`rejected` + `resolved_at`), writes `user_actions`, and only an accepted proposal updates commitment status.
 **AC:** reply "got it, sent the deck" on a tracked thread → next morning the queue proposes closing that commitment; one tap closes with `resolved_at`.
 **Tests:** matcher precision on fixture pairs; proposal-not-autoclose invariant (no commitment status change without a resolved proposal + `user_actions` row); nightly re-run converges (dedupe on same evidence).
 
@@ -151,6 +156,11 @@ Nightly `reconcile` job: candidate matches between last-24 h episodes and open c
 Surface memories where `review_at <= now` (and stale `last_used_at` candidates for `warm`/`archive`) in a review UI: keep / edit / archive / delete (soft, `status='deleted'`); dispositions logged.
 **AC:** an aged memory appears for review; archive removes it from retrieval (MC-201 filter) verifiably.
 **Tests:** queue query; lifecycle transitions; retrieval exclusion.
+
+### MC-406 · Ask-the-ledger chat
+Upgrade `/capture` into retrieval-grounded chat over the substrate: `cos.chat` task (`mid` tier — activates the reserved Sonnet tier, config + eval-free since it's not extraction), context = structured retrieval (open commitments by counterparty/due, recent episodes, person records) + vector memories; answers like "what do I owe Dana?" and produces *drafts* on request (nudge text, reply text — copyable, never sent; Level-2 invariant). Chat turns stored as episodes; `model_calls` rows carry null `run_id` + `task='cos.chat'`.
+**AC:** "what do I owe Dana?" answers correctly against the live ledger; "draft a nudge to Priya" yields copyable text and no send affordance exists.
+**Tests:** retrieval recipe shapes; no-send guard (no transport import/path in the chat module); `model_calls` attribution for web-initiated calls.
 
 ### MC-405 · Graduation-gate dashboard
 `/gate`: metric 1 brief-open-within-1 h rate over trailing 30 workdays (`opened_at` vs `generated_at`); metric 2 captured-then-dropped count (confirmed commitments that hit a terminal state without disposition — should be structurally ~0, the metric proves it); metric 5 `docs/INSIGHTS.md` entry count (parsed at build or via a simple counter); daily cost trend.

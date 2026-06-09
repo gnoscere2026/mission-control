@@ -79,7 +79,7 @@ Per run (task + prompt version + fixture set hash):
 - **Due-date accuracy** among matched pairs (incl. basis soft-misses).
 - **Cost + latency** per fixture (from `model_calls`) — a prompt that doubles cost for +1 pt needs a conversation.
 
-Output: console table + JSON artifact in `evals/results/` (git-ignored) + row written to `prompt_versions` (`eval_precision`, `eval_recall`, `eval_fixture_count`, `eval_run_at`).
+Output: console table + a **committed** results file per (task, version): `evals/results/<task>/<version>.json` — precision, recall, F1, hard-negative precision, due-date accuracy, fixture-set hash, prompt `content_hash`, cost/latency. **The repo is the source of truth for eval history.** The `prompt_versions` row is written at *activation* time from this file (§5.3), never by the runner — so the gate works from a fresh clone and CI needs no production access. Eval-run `model_calls` rows land in the local/CI throwaway DB the runner points at, never production: the R5 daily-cost ticker stays a pure product number.
 
 Production shadow metric (not the harness, but the same definition): rolling 7-day confirm-rate from `extraction_labels` (`confirmed + edited` / total). Divergence between harness precision and production confirm-rate means the fixture set has drifted from reality → grow fixtures (§1.3).
 
@@ -91,14 +91,15 @@ npm run eval -- --task cos.extract_commitments [--version v3] [--against active]
 
 - Loads the prompt module + Zod schema for the named version from `packages/core/extraction/`.
 - Runs every fixture through the real `packages/llm.complete()` path (same forced tool-use, same schema-retry) against the **cheap tier** — the harness must measure the production configuration, never a different model.
-- `--against active` prints a side-by-side delta vs. the currently-activated version's recorded numbers.
+- Requires a `DATABASE_URL` for the `model_calls` write path — local docker or the CI throwaway Postgres; the runner refuses a production URL.
+- `--against active` prints a side-by-side delta vs. the active version's committed results file.
 - Deterministic given the judge cache; a cold-cache run on ~100 fixtures costs cents (Haiku).
 
 ## 5. Gating workflow
 
-1. Any PR touching `packages/core/extraction/**` (prompt, schema, or post-processing) **must** include an eval run: CI job runs the harness (provider key in CI secrets) and fails if results weren't produced or if `prompt_versions` has no row for the new version.
-2. **Gate rule:** new version activates only if precision ≥ active-version precision − 1 pt **and** hard-negative precision does not regress. Recall may be traded down consciously — the PR must say so. Override allowed with an explicit justification line in the PR **and** an INSIGHTS.md entry (overrides are product learning by definition).
-3. Activation = updating the single active-version config reference (CLAUDE.md conventions) + setting `activated_at` on the `prompt_versions` row. `commitments.prompt_version` and `extraction_labels.prompt_version` then attribute all production signal to it.
+1. Any PR touching `packages/core/extraction/**` (prompt, schema, or post-processing) **must** include an eval run: the PR commits `evals/results/<task>/<version>.json`, and the CI job re-runs the harness against a throwaway Postgres (provider key in CI secrets) and fails if no results file was committed, the file's `content_hash` doesn't match the prompt module, or the re-run materially disagrees with the committed numbers (the judge cache makes reruns deterministic).
+2. **Gate rule:** new version activates only if precision ≥ active-version precision − 1 pt **and** hard-negative precision does not regress — both read from the committed results files. Recall may be traded down consciously — the PR must say so. Override allowed with an explicit justification line in the PR **and** an INSIGHTS.md entry (overrides are product learning by definition).
+3. Activation = updating the single active-version config reference (CLAUDE.md conventions); the release step then writes the `prompt_versions` row *from the committed results file* and sets `activated_at`. `commitments.prompt_version` and `extraction_labels.prompt_version` then attribute all production signal to it.
 4. **Auto-accept is earned, not assumed (brief §5):** the confidence threshold gate unlocks only when, over ≥100 production labels on the active version, precision within the `confidence ≥ X` bucket is ≥ 0.95. The harness ships the bucket report (`--report confidence-buckets`) from day one so the unlock date is a measurement, not a debate. Until then, everything stays human-confirmed.
 
 ## 6. Trajectory expectations

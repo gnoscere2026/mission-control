@@ -9,8 +9,8 @@ Sizing unit: a **weekend session** = one sitting of Claude Code implementation +
 | 0 | Walking Skeleton | 2 | A trivial 7 AM brief, pushed + emailed, from production infra |
 | 1 | Ledger | 3 | Real ingest → extraction → confirmation queue, with the eval harness live |
 | 2 | Morning Brief | 2 | The real brief: context assembly, generation, `opened_at` |
-| 3 | Meeting Prep | 2 | T−45 prep packets for flagged meetings |
-| 4 | EOD + Weekly + Reconciliation | 3 | The full cadence loop |
+| 3 | Meeting Prep | 2 | T−45 prep briefs for flagged meetings |
+| 4 | EOD + Weekly + Reconciliation | 4 | The full cadence loop + ask-the-ledger chat |
 
 Cross-phase rules (from brief §11, enforced via CLAUDE.md): plan mode before each epic; migrations applied and activity-log coverage verified at every session end; eval run whenever extraction is touched; `docs/INSIGHTS.md` updated when product learning occurs.
 
@@ -35,9 +35,9 @@ Cross-phase rules (from brief §11, enforced via CLAUDE.md): plan mode before ea
 
 - **Session 1.1 — Google ingest** (MC-101…103): OAuth connect (read-only scopes), sealed-box token storage, Gmail History-API sync with cursor + 404 fallback, GCal sync into `calendar_events` + episodes. Idempotency tests (replay a sync window → zero new rows).
 - **Session 1.2 — Extraction + LLM layer** (MC-104, MC-107): `packages/llm` `complete()` with tier routing, Anthropic adapter, Zod→forced-tool-use, schema-feedback retry, `model_calls` cost records; extraction prompt v1 + schema; candidates written with `extraction_hash` idempotency; run-health page reads real runs.
-- **Session 1.3 — Confirmation queue + eval harness** (MC-105, MC-106): one-tap confirm/edit/reject UI writing `user_actions` + `extraction_labels`; eval harness per [EVAL-SPEC.md](EVAL-SPEC.md) — anonymized fixture set (≥25 fixtures to start), precision/recall runner, baseline recorded in `prompt_versions`.
+- **Session 1.3 — Confirmation queue + eval harness + capture** (MC-105, MC-106, MC-108): one-tap confirm/edit/reject UI writing `user_actions` + `extraction_labels`; eval harness per [EVAL-SPEC.md](EVAL-SPEC.md) — anonymized fixture set (≥25 fixtures to start), precision/recall runner, baseline committed to `evals/results/` (`prompt_versions` row lands at activation); quick-capture chat surface (message → episode → extraction, candidates inline — the brief §2.2 manual-capture integration).
 
-**Exit criteria:** (1) An email Mark sends himself containing a promise appears as a candidate in the queue within 15 minutes. (2) Confirm/reject each write a label row. (3) `npm run eval` prints precision/recall for prompt v1 against fixtures and records to `prompt_versions`. (4) Every model call visible in `model_calls` with cost. (5) Week-2 precision may be mediocre — that's expected; the number being *visible and movable* is the criterion.
+**Exit criteria:** (1) An email Mark sends himself containing a promise appears as a candidate in the queue within 15 minutes — and a promise typed into capture appears inline within seconds. (2) Confirm/reject each write a label row. (3) `npm run eval` prints precision/recall for prompt v1 against fixtures and commits the results file to `evals/results/`. (4) Every model call visible in `model_calls` with cost. (5) Week-2 precision may be mediocre — that's expected; the number being *visible and movable* is the criterion.
 
 ---
 
@@ -54,22 +54,23 @@ Cross-phase rules (from brief §11, enforced via CLAUDE.md): plan mode before ea
 
 ## Phase 3 — Meeting Prep (2 sessions)
 
-**Goal:** prep packets ~45 min before flagged meetings, with person/relationship context.
+**Goal:** prep briefs ~45 min before flagged meetings, with person/relationship context. (Canonical term: **prep brief** — "packet" always means ContextPacket, see CONTEXT.md.)
 
 - **Session 3.1 — Flagging + scheduling** (MC-301, MC-302): flag rules (external attendees by default + manual toggle in the calendar list), T−45 delayed-job scheduler keyed `meeting_prep:<gcal_event_id>` with reschedule/cancel on event change.
-- **Session 3.2 — Packet + person context** (MC-303, MC-304): person resolution from attendee emails (auto-create `people`, update `last_contact_at`), prep-packet generation (counterparty commitments owed both directions, recent episodes, memories), push delivery.
+- **Session 3.2 — Prep brief + person context** (MC-303, MC-304): person resolution from attendee emails (auto-create `people`, update `last_contact_at`), prep-brief generation (counterparty commitments owed both directions, recent episodes, memories), push delivery.
 
-**Exit criteria:** (1) A flagged 2 PM meeting produces a push at ~1:15 PM with attendee context and open mutual commitments. (2) Moving the meeting reschedules the packet; cancelling cancels it. (3) Unflagged meetings produce nothing.
+**Exit criteria:** (1) A flagged 2 PM meeting produces a push at ~1:15 PM with attendee context and open mutual commitments. (2) Moving the meeting reschedules the prep brief; cancelling cancels it. (3) Unflagged meetings produce nothing.
 
 ---
 
-## Phase 4 — EOD Close + Weekly Review + Reconciliation maturity (3 sessions)
+## Phase 4 — EOD Close + Weekly Review + Reconciliation maturity (4 sessions)
 
 **Goal:** the full chief-of-staff cadence (§2.5 complete), reconciliation that actually closes loops, and the memory review queue.
 
 - **Session 4.1 — Reconciliation v2** (MC-401): nightly job matches new episodes against open commitments (done? slipped? contradicted?) producing *proposals* into the confirmation queue — never auto-closing (invariant 4).
 - **Session 4.2 — EOD Close** (MC-402): 4:30 PM workdays — what closed, what slipped, tomorrow teed up; same packet→generate→deliver pipeline, new task + prompt.
 - **Session 4.3 — Weekly Review + memory queue + gate instrumentation** (MC-403…405): Sunday 7 PM full readout; memory review queue surfacing `review_at` items; graduation-gate dashboard (brief-open rate, captured-then-dropped count, insight count).
+- **Session 4.4 — Ask-the-ledger chat** (MC-406): `/capture` upgraded to retrieval-grounded chat (`cos.chat`, mid tier); answers over the ledger, drafts on request — never sends.
 
 **Exit criteria:** (1) All seven §2.5 jobs run on schedule for a full week with failures (if any) visible in-app. (2) A commitment fulfilled by a reply email gets proposed as done within a day and closes with one tap. (3) The gate dashboard reports metrics 1, 2, and 5 from brief §8 continuously.
 
