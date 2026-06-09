@@ -1,0 +1,21 @@
+{
+  "name": "@mission-control/core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mission-control/db": "*",
+    "drizzle-orm": "^0.44.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "vitest": "^3.0.0"
+  }
+}

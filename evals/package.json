@@ -1,0 +1,15 @@
+{
+  "name": "@mission-control/evals",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "eval": "tsx src/run.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "vitest": "^3.0.0"
+  }
+}
