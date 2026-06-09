@@ -43,4 +43,12 @@ describe("google routes reject unauthenticated requests", () => {
     );
     expect(res.status).toBe(401);
   });
+
+  it("POST /api/runs/[id]/retry → 401", async () => {
+    const { POST } = await import("../app/api/runs/[id]/retry/route");
+    const res = await POST(new Request("http://localhost:3000/api/runs/x/retry", { method: "POST" }), {
+      params: Promise.resolve({ id: "00000000-0000-0000-0000-000000000000" }),
+    });
+    expect(res.status).toBe(401);
+  });
 });
