@@ -1,5 +1,12 @@
-import { and, desc, eq } from "drizzle-orm";
-import { briefs, cadenceRuns, pushSubscriptions, users, type Db } from "@mission-control/db";
+import { and, asc, desc, eq } from "drizzle-orm";
+import {
+  briefs,
+  cadenceRuns,
+  pushSubscriptions,
+  runSteps,
+  users,
+  type Db,
+} from "@mission-control/db";
 import type { SubscriptionPayload } from "./push";
 
 // Every helper takes ownerId — no ownerless query path exists (invariant 1).
@@ -69,4 +76,31 @@ export async function listRecentRuns(db: Db, ownerId: string, limit = 50) {
     .where(eq(cadenceRuns.ownerId, ownerId))
     .orderBy(desc(cadenceRuns.startedAt))
     .limit(limit);
+}
+
+// MC-107: "did the Morning Brief go out?" answers from this one query —
+// DISTINCT ON (job_name) newest-first.
+export async function latestRunPerJob(db: Db, ownerId: string) {
+  return db
+    .selectDistinctOn([cadenceRuns.jobName])
+    .from(cadenceRuns)
+    .where(eq(cadenceRuns.ownerId, ownerId))
+    .orderBy(asc(cadenceRuns.jobName), desc(cadenceRuns.startedAt));
+}
+
+export async function anyLatestRunFailed(db: Db, ownerId: string): Promise<boolean> {
+  const latest = await latestRunPerJob(db, ownerId);
+  return latest.some((r) => r.status === "failed");
+}
+
+export async function getRun(db: Db, ownerId: string, runId: string) {
+  const [row] = await db
+    .select()
+    .from(cadenceRuns)
+    .where(and(eq(cadenceRuns.ownerId, ownerId), eq(cadenceRuns.id, runId)));
+  return row;
+}
+
+export async function listRunSteps(db: Db, runId: string) {
+  return db.select().from(runSteps).where(eq(runSteps.runId, runId)).orderBy(asc(runSteps.seq));
 }

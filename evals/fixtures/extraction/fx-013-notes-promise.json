@@ -1,0 +1,30 @@
+{
+  "id": "fx-013-notes-promise",
+  "source_type": "email",
+  "input": {
+    "from": "Mark <mark@example.com>",
+    "to": "Sam Ortiz <sam@northwind.example>",
+    "subject": "Re: today's call",
+    "occurred_at": "2026-05-12T16:50:00-06:00",
+    "body": "Great call today. I'll send my notes and the action items by tomorrow morning."
+  },
+  "expected": [
+    {
+      "direction": "owed_by_me",
+      "counterparty": "sam@northwind.example",
+      "description_gist": "send call notes and action items",
+      "due": {
+        "date": "2026-05-13",
+        "basis": "explicit"
+      }
+    }
+  ],
+  "notes": "owner promise, 'tomorrow morning'",
+  "anonymized": true,
+  "aliases": {
+    "sam@northwind.example": [
+      "Sam",
+      "Sam Ortiz"
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+# MC-106 / EVAL-SPEC §5.1: any change to extraction prompts/schemas must carry
+# a committed eval results file, and the re-run must agree with it. The judge
+# cache (committed) keeps reruns near-deterministic.
+name: Evals
+
+on:
+  pull_request:
+    paths:
+      - "packages/core/src/extraction/**"
+      - "evals/**"
+  workflow_dispatch:
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mission_control
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mission_control"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      # throwaway CI database — the runner refuses anything non-local anyway
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/mission_control
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Migrate throwaway DB
+        run: npm run db:migrate
+
+      - name: Eval gate (re-run vs committed results)
+        run: npm run eval -- --task cos.extract_commitments --assert-committed

@@ -1,0 +1,30 @@
+{
+  "id": "fx-010-accepted-request",
+  "source_type": "email",
+  "input": {
+    "from": "Mark <mark@example.com>",
+    "to": "Dana Reyes <dana@acme-co.example>",
+    "subject": "Re: onboarding",
+    "occurred_at": "2026-05-12T08:05:00-06:00",
+    "body": "Sure — I'll send the onboarding checklist tomorrow."
+  },
+  "expected": [
+    {
+      "direction": "owed_by_me",
+      "counterparty": "dana@acme-co.example",
+      "description_gist": "send onboarding checklist",
+      "due": {
+        "date": "2026-05-13",
+        "basis": "explicit"
+      }
+    }
+  ],
+  "notes": "'tomorrow' from occurred_at",
+  "anonymized": true,
+  "aliases": {
+    "dana@acme-co.example": [
+      "Dana",
+      "Dana Reyes"
+    ]
+  }
+}

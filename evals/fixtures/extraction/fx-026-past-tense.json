@@ -1,0 +1,14 @@
+{
+  "id": "fx-026-past-tense",
+  "source_type": "email",
+  "input": {
+    "from": "Alex Chen <alex@umbrella.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "deck sent",
+    "occurred_at": "2026-05-13T09:30:00-06:00",
+    "body": "I sent the deck over yesterday — let me know if it renders ok on your end."
+  },
+  "expected": [],
+  "notes": "completed work reported in past tense; 'let me know' is not a deliverable",
+  "anonymized": true
+}

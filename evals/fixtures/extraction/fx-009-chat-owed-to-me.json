@@ -1,0 +1,21 @@
+{
+  "id": "fx-009-chat-owed-to-me",
+  "source_type": "chat",
+  "input": {
+    "occurred_at": "2026-05-12T18:00:00-06:00",
+    "body": "Raj said he'll get me the Q3 budget numbers by end of month"
+  },
+  "expected": [
+    {
+      "direction": "owed_to_me",
+      "counterparty": "Raj",
+      "description_gist": "send Q3 budget numbers",
+      "due": {
+        "date": "2026-05-31",
+        "basis": "explicit"
+      }
+    }
+  ],
+  "notes": "'end of month' resolves to the month boundary",
+  "anonymized": true
+}

@@ -1,0 +1,14 @@
+{
+  "id": "fx-025-invite-text",
+  "source_type": "email",
+  "input": {
+    "from": "Google Calendar <calendar-notification@google.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "Invitation: Q3 Planning",
+    "occurred_at": "2026-05-12T09:45:00-06:00",
+    "body": "You have been invited to Q3 Planning. When: Thu May 14, 2026 2pm - 3pm (MDT). Joining info follows. Going?"
+  },
+  "expected": [],
+  "notes": "calendar invite text — already captured by the calendar",
+  "anonymized": true
+}

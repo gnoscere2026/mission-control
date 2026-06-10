@@ -1,0 +1,30 @@
+{
+  "id": "fx-005-inferred-due",
+  "source_type": "email",
+  "input": {
+    "from": "Alex Chen <alex@umbrella.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "security questionnaire",
+    "occurred_at": "2026-05-13T10:00:00-06:00",
+    "body": "I'll get you our security questionnaire answers before the board meeting on Monday."
+  },
+  "expected": [
+    {
+      "direction": "owed_to_me",
+      "counterparty": "alex@umbrella.example",
+      "description_gist": "send security questionnaire answers",
+      "due": {
+        "date": "2026-05-18",
+        "basis": "inferred"
+      }
+    }
+  ],
+  "notes": "due inferred from a named event with a weekday",
+  "anonymized": true,
+  "aliases": {
+    "alex@umbrella.example": [
+      "Alex",
+      "Alex Chen"
+    ]
+  }
+}

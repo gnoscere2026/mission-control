@@ -8,7 +8,8 @@
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "trigger:brief": "tsx src/trigger-brief.ts"
+    "trigger:brief": "tsx src/trigger-brief.ts",
+    "smoke:extraction": "tsx src/smoke-extraction.ts"
   },
   "dependencies": {
     "@mission-control/core": "*",

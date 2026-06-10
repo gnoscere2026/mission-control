@@ -1,0 +1,14 @@
+{
+  "id": "fx-021-fyi-status",
+  "source_type": "email",
+  "input": {
+    "from": "Sam Ortiz <sam@northwind.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "migration done",
+    "occurred_at": "2026-05-13T08:00:00-06:00",
+    "body": "Heads up — the migration finished last night and everything looks green. No action needed on your side."
+  },
+  "expected": [],
+  "notes": "FYI status update, past tense, explicit no-action",
+  "anonymized": true
+}

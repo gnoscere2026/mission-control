@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import Nav from "./nav";
 
 export const metadata: Metadata = {
   title: "Mission Control",
@@ -16,12 +17,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body style={{ fontFamily: "system-ui, sans-serif", margin: "0 auto", maxWidth: 720, padding: 16 }}>
-        <nav style={{ display: "flex", gap: 16, paddingBottom: 12, borderBottom: "1px solid #ddd" }}>
-          <a href="/">Home</a>
-          <a href="/briefs">Briefs</a>
-          <a href="/runs">Runs</a>
-          <a href="/settings">Settings</a>
-        </nav>
+        <Nav />
         <main>{children}</main>
       </body>
     </html>

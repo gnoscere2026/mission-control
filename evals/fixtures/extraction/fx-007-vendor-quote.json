@@ -1,0 +1,30 @@
+{
+  "id": "fx-007-vendor-quote",
+  "source_type": "email",
+  "input": {
+    "from": "Sam Ortiz <sam@northwind.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "updated quote",
+    "occurred_at": "2026-05-04T09:30:00-06:00",
+    "body": "Good catch on the seat count. I'll get the updated quote with the new numbers to you by Wednesday."
+  },
+  "expected": [
+    {
+      "direction": "owed_to_me",
+      "counterparty": "sam@northwind.example",
+      "description_gist": "send updated quote",
+      "due": {
+        "date": "2026-05-06",
+        "basis": "explicit"
+      }
+    }
+  ],
+  "notes": "weekday resolution Mon→Wed",
+  "anonymized": true,
+  "aliases": {
+    "sam@northwind.example": [
+      "Sam",
+      "Sam Ortiz"
+    ]
+  }
+}

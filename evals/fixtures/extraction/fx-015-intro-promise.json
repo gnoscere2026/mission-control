@@ -1,0 +1,30 @@
+{
+  "id": "fx-015-intro-promise",
+  "source_type": "email",
+  "input": {
+    "from": "Mark <mark@example.com>",
+    "to": "Alex Chen <alex@umbrella.example>",
+    "subject": "Re: Globex",
+    "occurred_at": "2026-05-12T12:00:00-06:00",
+    "body": "I'll intro you to Jordan at Globex this week — expect an email from me."
+  },
+  "expected": [
+    {
+      "direction": "owed_by_me",
+      "counterparty": "alex@umbrella.example",
+      "description_gist": "intro Alex to Jordan",
+      "due": {
+        "date": "2026-05-15",
+        "basis": "inferred"
+      }
+    }
+  ],
+  "notes": "'this week' inferred",
+  "anonymized": true,
+  "aliases": {
+    "alex@umbrella.example": [
+      "Alex",
+      "Alex Chen"
+    ]
+  }
+}

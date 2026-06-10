@@ -1,0 +1,39 @@
+{
+  "id": "fx-012-two-same-direction",
+  "source_type": "email",
+  "input": {
+    "from": "Alex Chen <alex@umbrella.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "renewal",
+    "occurred_at": "2026-05-12T14:00:00-06:00",
+    "body": "Two things: I'll send the renewal pricing tomorrow, and I'll have our security team answer your SSO question this week."
+  },
+  "expected": [
+    {
+      "direction": "owed_to_me",
+      "counterparty": "alex@umbrella.example",
+      "description_gist": "send renewal pricing",
+      "due": {
+        "date": "2026-05-13",
+        "basis": "explicit"
+      }
+    },
+    {
+      "direction": "owed_to_me",
+      "counterparty": "alex@umbrella.example",
+      "description_gist": "security team answer SSO question",
+      "due": {
+        "date": "2026-05-15",
+        "basis": "inferred"
+      }
+    }
+  ],
+  "notes": "two commitments, same direction; 'this week' inferred to Friday",
+  "anonymized": true,
+  "aliases": {
+    "alex@umbrella.example": [
+      "Alex",
+      "Alex Chen"
+    ]
+  }
+}

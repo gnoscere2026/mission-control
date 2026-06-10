@@ -1,0 +1,30 @@
+{
+  "id": "fx-016-payment",
+  "source_type": "email",
+  "input": {
+    "from": "Jordan Lee <jordan@globex.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "deposit",
+    "occurred_at": "2026-05-13T11:15:00-06:00",
+    "body": "Finance approved it — we'll wire the deposit by May 22."
+  },
+  "expected": [
+    {
+      "direction": "owed_to_me",
+      "counterparty": "jordan@globex.example",
+      "description_gist": "wire deposit",
+      "due": {
+        "date": "2026-05-22",
+        "basis": "explicit"
+      }
+    }
+  ],
+  "notes": "payment promise, explicit date",
+  "anonymized": true,
+  "aliases": {
+    "jordan@globex.example": [
+      "Jordan",
+      "Jordan Lee"
+    ]
+  }
+}

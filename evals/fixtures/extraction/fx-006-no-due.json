@@ -1,0 +1,27 @@
+{
+  "id": "fx-006-no-due",
+  "source_type": "email",
+  "input": {
+    "from": "Morgan Diaz <morgan@stark-ind.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "Re: draft",
+    "occurred_at": "2026-05-12T13:20:00-06:00",
+    "body": "Happy to take a look — I'll review your draft and send comments."
+  },
+  "expected": [
+    {
+      "direction": "owed_to_me",
+      "counterparty": "morgan@stark-ind.example",
+      "description_gist": "review draft and send comments",
+      "due": null
+    }
+  ],
+  "notes": "promise without any time anchor",
+  "anonymized": true,
+  "aliases": {
+    "morgan@stark-ind.example": [
+      "Morgan",
+      "Morgan Diaz"
+    ]
+  }
+}

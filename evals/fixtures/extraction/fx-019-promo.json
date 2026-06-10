@@ -1,0 +1,14 @@
+{
+  "id": "fx-019-promo",
+  "source_type": "email",
+  "input": {
+    "from": "Umbrella Cloud <promo@umbrella.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "20% off annual plans",
+    "occurred_at": "2026-05-12T07:30:00-06:00",
+    "body": "For a limited time, save 20% when you upgrade to an annual plan. We'll even migrate your data for free. Offer ends Friday!"
+  },
+  "expected": [],
+  "notes": "marketing — 'we'll migrate your data' is promo copy, not a commitment to the owner",
+  "anonymized": true
+}

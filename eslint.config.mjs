@@ -17,10 +17,17 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     rules: {
-      // Invariant 3 scaffold (enforced fully in MC-104): provider SDKs only inside packages/llm.
+      // Invariant 3 (MC-104): provider SDKs only inside packages/llm.
       "no-restricted-imports": [
         "error",
-        { paths: [{ name: "@anthropic-ai/sdk", message: "Provider SDKs may only be imported in packages/llm (CLAUDE.md invariant 3)." }] },
+        {
+          patterns: [
+            {
+              group: ["@anthropic-ai/*", "openai", "openai/*", "voyageai", "voyageai/*", "@google/generative-ai"],
+              message: "Provider SDKs may only be imported in packages/llm (CLAUDE.md invariant 3).",
+            },
+          ],
+        },
       ],
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     },

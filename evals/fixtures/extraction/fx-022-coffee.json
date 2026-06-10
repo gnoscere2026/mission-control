@@ -1,0 +1,14 @@
+{
+  "id": "fx-022-coffee",
+  "source_type": "email",
+  "input": {
+    "from": "Morgan Diaz <morgan@stark-ind.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "good running into you",
+    "occurred_at": "2026-05-12T19:00:00-06:00",
+    "body": "Was great running into you at the conference! We should grab coffee sometime."
+  },
+  "expected": [],
+  "notes": "aspirational pleasantry — the canonical hard negative",
+  "anonymized": true
+}

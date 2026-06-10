@@ -1,0 +1,14 @@
+{
+  "id": "fx-023-scheduling",
+  "source_type": "email",
+  "input": {
+    "from": "Priya Kaur <priya@initech.example>",
+    "to": "Mark <mark@example.com>",
+    "subject": "sync time",
+    "occurred_at": "2026-05-12T10:20:00-06:00",
+    "body": "Does Tuesday at 2 or Wednesday at 10 work for our sync? I'll send an invite once you confirm."
+  },
+  "expected": [],
+  "notes": "scheduling chatter — the meeting itself lands on the calendar; 'I'll send an invite' is part of scheduling, not a deliverable",
+  "anonymized": true
+}
