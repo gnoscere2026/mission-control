@@ -75,6 +75,12 @@ Any SMTP relay works (the mirror is ~plain text to your own inbox). Easiest: a G
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | from 7.1 step 5 |
 | `ANTHROPIC_API_KEY` | from console.anthropic.com (worker + local; web doesn't need it) |
 
+### 7.2b Phase-2 env var (both Railway services + local `.env`)
+
+| Var | Value |
+|---|---|
+| `VOYAGE_API_KEY` | from dash.voyageai.com — embeddings for memories + packet retrieval (MC-201). **Both** services: the worker assembles context packets; the web app embeds pinned memories. Without it the 7 AM morning-brief run fails red on `/runs` (no brief, no push, no email). Set it before the first 7 AM after deploying Phase 2. |
+
 ### 7.3 GitHub secret for the eval CI gate
 
 Repo → Settings → Secrets and variables → Actions → add `ANTHROPIC_API_KEY`. The `Evals` workflow (`.github/workflows/evals.yml`) re-runs the harness on any PR touching `packages/core/src/extraction/**` and fails if the committed results file is missing or disagrees.
@@ -95,6 +101,15 @@ npm run eval:activate                            # writes the prompt_versions ro
 3. Type "told Sara I'd send the contract Friday" into `/capture` → candidate renders inline within seconds; confirm it → lands in `/commitments`.
 4. Confirm one candidate and reject another → two `extraction_labels` rows (SQL console spot-check).
 5. `/runs` shows `ingest_gmail` / `ingest_gcal` / `extract_commitments` green; force a failure (revoke the app's access at myaccount.google.com → Security) → red `reauth_required` run + push alert + settings banner; reconnect restores ingest without redeploy.
+
+### 7.6 Phase-2 exit-criteria drill (BUILD-PLAN)
+
+1. Set `VOYAGE_API_KEY` on both Railway services (7.2b) **before** the next 7 AM.
+2. Next 7 AM: the brief contains your real open commitments (ranked) + today's calendar; push lands on the phone; mirror email arrives.
+3. Tap the push → reader opens → SQL spot-check: `select opened_at from briefs order by generated_at desc limit 1` is set (exactly once on revisit).
+4. In the reader, tap **why did you say this?** → debug view walks brief → packet → commitment source excerpts.
+5. Pin a note in `/capture` (📌) → it should surface in a future brief's packet (`context_packets.content -> 'memories'`).
+6. `/runs` shows the `morning_brief` run with its `presync` step, and the daily model-spend ticker vs. the $5 default ceiling; `/settings` shows per-device push health.
 
 ## 8. Phase-0 exit-criteria drill (BUILD-PLAN)
 
