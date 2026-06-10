@@ -6,5 +6,6 @@ export * from "./crypto";
 export * from "./extraction";
 export * from "./google";
 export * from "./ingest";
+export * from "./memories";
 export * from "./preferences";
 export * from "./time";
