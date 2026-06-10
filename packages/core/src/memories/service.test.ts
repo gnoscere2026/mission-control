@@ -31,13 +31,13 @@ function vec(i: number): number[] {
 }
 
 function fakeEmbed(v: number[]): typeof embed {
-  return (async (args: { input: string[] }) => ({
+  return async (args: Parameters<typeof embed>[0]) => ({
     embeddings: args.input.map(() => v),
     model: "voyage-3.5",
     modelCallId: "00000000-0000-0000-0000-000000000000",
     costUsd: "0.000001",
     latencyMs: 1,
-  })) as unknown as typeof embed;
+  });
 }
 
 describe("createMemory", () => {
@@ -78,7 +78,7 @@ describe("retrieveMemories", () => {
     const now = new Date("2026-06-09T13:00:00Z");
     const hit = await seed("similar memory", vec(0), { createdAt: new Date("2026-06-01T00:00:00Z") });
     await seed("orthogonal memory", vec(9), { createdAt: new Date("2026-06-01T00:00:00Z") });
-    const pinned = await seed("pinned goal", vec(8), { pinned: true });
+    const pinned = await seed("pinned goal", vec(8), { pinned: true, status: "active" });
     const archived = await seed("archived", vec(0), { status: "archived" });
 
     const result = await retrieveMemories(db, { ownerId, queryEmbedding: vec(0), k: 2, now });
@@ -94,6 +94,9 @@ describe("retrieveMemories", () => {
     expect(touched!.lastUsedAt).not.toBeNull();
     const [untouchedArchived] = await db.select().from(memories).where(eq(memories.id, archived));
     expect(untouchedArchived!.lastUsedAt).toBeNull();
+    // "everything returned" includes the pinned ride-along
+    const [touchedPinned] = await db.select().from(memories).where(eq(memories.id, pinned));
+    expect(touchedPinned!.lastUsedAt).not.toBeNull();
   });
 
   it("recency breaks near-ties: same similarity, newer wins", async () => {

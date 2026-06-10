@@ -72,9 +72,11 @@ const SIMILARITY_WEIGHT = 0.8;
 const RECENCY_WEIGHT = 0.2;
 const RECENCY_HALF_LIFE_DAYS = 30;
 
-// Retrieval (MC-201): cosine top-k over active memories via the HNSW index,
-// blended with recency in JS (deterministic, tie-broken by id); pinned active
-// memories always ride along. Touches last_used_at on everything returned.
+// Retrieval (MC-201): cosine top-k over active memories (the HNSW index exists,
+// but pgvector post-filters WHERE clauses — fine at v1 corpus size; revisit the
+// index strategy if the corpus outgrows a sequential distance scan). Blended
+// with recency in JS (deterministic, tie-broken by id); pinned active memories
+// always ride along. Touches last_used_at on everything returned.
 export async function retrieveMemories(db: Db, args: RetrieveMemoriesArgs): Promise<RetrievedMemory[]> {
   const k = args.k ?? 8;
   const now = args.now ?? new Date();
