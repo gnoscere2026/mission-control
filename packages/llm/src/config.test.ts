@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeCostUsd, resolveTask, TIER_MODELS } from "./config";
+import { computeCostUsd, resolveEmbedTask, resolveTask, TIER_MODELS } from "./config";
 
 describe("resolveTask", () => {
   it("maps cos.extract_commitments to the cheap tier", () => {
@@ -34,4 +34,25 @@ describe("computeCostUsd", () => {
       computeCostUsd("gpt-99", { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0 }),
     ).toThrow(/price table/);
   });
+});
+
+describe("resolveEmbedTask", () => {
+  it("maps embed.memory and embed.query to voyage-3.5 on the embed tier", () => {
+    expect(resolveEmbedTask("embed.memory")).toEqual({
+      tier: "embed",
+      provider: "voyage",
+      model: "voyage-3.5",
+    });
+    expect(resolveEmbedTask("embed.query").model).toBe("voyage-3.5");
+  });
+
+  it("throws on unregistered embed tasks", () => {
+    expect(() => resolveEmbedTask("embed.unknown")).toThrow(/register/);
+    expect(() => resolveEmbedTask("cos.extract_commitments")).toThrow(/register/);
+  });
+});
+
+it("prices voyage-3.5 embeddings at $0.06/MTok input", () => {
+  expect(computeCostUsd("voyage-3.5", { inputTokens: 1_000_000, outputTokens: 0, cacheReadTokens: 0 })).toBe("0.060000");
+  expect(computeCostUsd("voyage-3.5", { inputTokens: 1000, outputTokens: 0, cacheReadTokens: 0 })).toBe("0.000060");
 });
