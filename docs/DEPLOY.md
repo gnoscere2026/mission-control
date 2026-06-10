@@ -65,7 +65,7 @@ Any SMTP relay works (the mirror is ~plain text to your own inbox). Easiest: a G
 2. **APIs & Services → Library**: enable **Gmail API** and **Google Calendar API**.
 3. **OAuth consent screen**: External, publishing status **Testing** (deliberate — see RISK-REGISTER R2; refresh tokens expire ~weekly, the app handles re-consent with a push alert + settings banner). Add your Gmail address(es) as **test users**.
 4. Scopes: only `gmail.readonly` and `calendar.readonly` (a repo test pins this list).
-5. **Credentials → Create OAuth client ID → Web application**: authorized redirect URI = `<NEXT_PUBLIC_APP_URL>/api/google/callback` (add `http://localhost:3000/api/google/callback` for local dev). Copy client ID + secret.
+5. **Credentials → Create OAuth client ID → Web application**: authorized redirect URI = `<NEXT_PUBLIC_APP_URL>/api/google/callback` (add `http://localhost:3100/api/google/callback` for local dev). Copy client ID + secret.
 
 ### 7.2 New env vars (both Railway services + local `.env`)
 
