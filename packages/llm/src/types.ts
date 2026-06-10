@@ -20,3 +20,19 @@ export interface StructuredCallResult {
 export interface ProviderAdapter {
   completeStructured(args: StructuredCallArgs): Promise<StructuredCallResult>;
 }
+
+// Embedding seam (MC-201): mirrors ProviderAdapter for embed().
+export interface EmbedBatchArgs {
+  model: string;
+  input: string[];
+  inputType?: "document" | "query";
+}
+
+export interface EmbedBatchResult {
+  embeddings: number[][];
+  usage: { totalTokens: number };
+}
+
+export interface EmbeddingAdapter {
+  embedBatch(args: EmbedBatchArgs): Promise<EmbedBatchResult>;
+}
