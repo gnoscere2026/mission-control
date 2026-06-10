@@ -1,7 +1,11 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   briefs,
   cadenceRuns,
+  commitments,
+  contextPackets,
+  episodes,
+  modelCalls,
   pushSubscriptions,
   runSteps,
   users,
@@ -103,4 +107,55 @@ export async function getRun(db: Db, ownerId: string, runId: string) {
 
 export async function listRunSteps(db: Db, runId: string) {
   return db.select().from(runSteps).where(eq(runSteps.runId, runId)).orderBy(asc(runSteps.seq));
+}
+
+export async function getContextPacket(db: Db, ownerId: string, id: string) {
+  const [row] = await db
+    .select()
+    .from(contextPackets)
+    .where(and(eq(contextPackets.ownerId, ownerId), eq(contextPackets.id, id)));
+  return row;
+}
+
+// "why did you say this?": packet commitments → source excerpt → source episode (MC-203)
+export async function listCommitmentSources(db: Db, ownerId: string, ids: string[]) {
+  if (ids.length === 0) return [];
+  return db
+    .select({
+      id: commitments.id,
+      description: commitments.description,
+      sourceType: commitments.sourceType,
+      sourceRef: commitments.sourceRef,
+      sourceExcerpt: commitments.sourceExcerpt,
+      episodeSummary: episodes.summary,
+      episodeOccurredAt: episodes.occurredAt,
+    })
+    .from(commitments)
+    .leftJoin(episodes, eq(commitments.sourceEpisodeId, episodes.id))
+    .where(and(eq(commitments.ownerId, ownerId), inArray(commitments.id, ids)));
+}
+
+// MC-204: push delivery health — all subscriptions for the owner, newest first.
+export async function listPushSubscriptions(db: Db, ownerId: string) {
+  return db
+    .select()
+    .from(pushSubscriptions)
+    .where(eq(pushSubscriptions.ownerId, ownerId))
+    .orderBy(desc(pushSubscriptions.createdAt));
+}
+
+// MC-204: today's model spend (Denver-day boundary), rounded to 2 decimal places.
+export async function dailyModelSpendUsd(db: Db, ownerId: string): Promise<string> {
+  const [row] = await db
+    .select({
+      total: sql<string>`coalesce(sum(${modelCalls.costUsd}), 0)::numeric(12,2)`,
+    })
+    .from(modelCalls)
+    .where(
+      and(
+        eq(modelCalls.ownerId, ownerId),
+        sql`${modelCalls.createdAt} >= (date_trunc('day', now() at time zone 'America/Denver') at time zone 'America/Denver')`,
+      ),
+    );
+  return row?.total ?? "0.00";
 }

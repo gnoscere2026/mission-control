@@ -1,6 +1,7 @@
 import { getDb } from "../../src/db";
-import { latestRunPerJob, listRecentRuns } from "../../src/queries";
+import { dailyModelSpendUsd, latestRunPerJob, listRecentRuns } from "../../src/queries";
 import { requireOwnerId } from "../../src/session";
+import { getPreference } from "@mission-control/core";
 
 export const dynamic = "force-dynamic";
 
@@ -9,14 +10,21 @@ export const dynamic = "force-dynamic";
 export default async function RunsPage() {
   const ownerId = await requireOwnerId();
   const db = getDb();
-  const [latest, recent] = await Promise.all([
+  const [latest, recent, spend, ceiling] = await Promise.all([
     latestRunPerJob(db, ownerId),
     listRecentRuns(db, ownerId),
+    dailyModelSpendUsd(db, ownerId),
+    getPreference<number>(db, ownerId, "daily_cost_ceiling_usd"),
   ]);
+  const effectiveCeiling = ceiling ?? 5;
+  const over = Number(spend) > effectiveCeiling;
 
   return (
     <div>
       <h1>Runs</h1>
+      <p style={over ? { color: "crimson", fontWeight: 600 } : undefined}>
+        Model spend today: ${spend} / ${effectiveCeiling.toFixed(2)} ceiling{over ? " — OVER" : ""}
+      </p>
 
       <h2>Latest by job</h2>
       {latest.length === 0 ? <p>No runs recorded yet.</p> : null}

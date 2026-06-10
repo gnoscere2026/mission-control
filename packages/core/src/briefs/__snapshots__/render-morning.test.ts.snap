@@ -1,0 +1,30 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`renderMorningBriefMd > omits empty sections 1`] = `
+"# Morning Brief — 2026-06-09
+
+Quiet day.
+"
+`;
+
+exports[`renderMorningBriefMd > renders all sections 1`] = `
+"# Morning Brief — 2026-06-09
+
+Tight morning: contract due today, standup at 9:30.
+
+## Today
+- **09:30** Standup — skim yesterday's capture notes
+- **14:00** 1:1 with Dana
+
+## Top commitments
+- send Sara the contract (due 2026-06-09) — due today
+- review Q3 plan
+
+## Waiting on
+- revised deck — Sara
+  > draft nudge: Hi Sara — any update on the revised deck?
+
+## Slipped
+- intro Dana to Priya (was due 2026-06-05)
+"
+`;

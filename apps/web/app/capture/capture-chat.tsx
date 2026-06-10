@@ -28,6 +28,7 @@ export default function CaptureChat() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pinned, setPinned] = useState<Set<string>>(new Set());
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
@@ -70,6 +71,25 @@ export default function CaptureChat() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }
 
+  async function pin(m: Message) {
+    // optimistic disable guards double-click double-pins; rollback on failure
+    setPinned((p) => new Set(p).add(m.id));
+    try {
+      const res = await fetch("/api/memories", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content: m.text, sourceEpisodeId: m.id }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch {
+      setPinned((p) => {
+        const next = new Set(p);
+        next.delete(m.id);
+        return next;
+      });
+    }
+  }
+
   async function disposition(id: string, kind: "confirm" | "reject") {
     const res = await fetch(`/api/commitments/${id}/${kind}`, { method: "POST" });
     if (res.ok) await refresh();
@@ -94,8 +114,16 @@ export default function CaptureChat() {
           <div key={m.id}>
             <div style={{ background: "#f3f4f6", borderRadius: 8, padding: "8px 12px" }}>
               {m.text}
-              <div style={{ fontSize: 11, color: "#777" }}>
+              <div style={{ fontSize: 11, color: "#777", display: "flex", alignItems: "center", gap: 8 }}>
                 {new Date(m.occurredAt).toLocaleString()}
+                <button
+                  onClick={() => void pin(m)}
+                  disabled={pinned.has(m.id)}
+                  style={{ marginLeft: 8, fontSize: 11 }}
+                  title="Pin to memory"
+                >
+                  {pinned.has(m.id) ? "📌 pinned" : "📌 pin"}
+                </button>
               </div>
             </div>
             {(byEpisode.get(m.id) ?? []).map((c) => (

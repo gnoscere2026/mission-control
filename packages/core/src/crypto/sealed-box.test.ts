@@ -10,9 +10,11 @@ async function freshKey(): Promise<string> {
 describe("sealed-box token crypto", () => {
   it("round-trips a token payload", async () => {
     const key = await freshKey();
-    const plain = JSON.stringify({ refresh_token: "r1", access_token: "a1" });
+    // Sentinel contains "-", which cannot occur in base64 ciphertext — the
+    // plaintext-leak assertion is deterministic, not probabilistic (cf. dc124bc).
+    const plain = JSON.stringify({ refresh_token: "r1-secret-value", access_token: "a1" });
     const sealed = await sealToken(plain, key);
-    expect(sealed).not.toContain("r1");
+    expect(sealed).not.toContain("r1-secret-value");
     expect(await unsealToken(sealed, key)).toBe(plain);
   });
 

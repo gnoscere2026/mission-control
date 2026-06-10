@@ -1,6 +1,6 @@
 import { Worker } from "bullmq";
 import { createDb } from "@mission-control/db";
-import { recordPromptVersion } from "@mission-control/core";
+import { recordActivePromptVersions } from "@mission-control/core";
 import { databaseUrl, loadEnv, redisUrl } from "./env";
 import { createConnection, createQueues, QUEUE_NAMES } from "./queues";
 import { resolveOwner } from "./owner";
@@ -11,8 +11,8 @@ loadEnv();
 
 const { db, pool } = createDb(databaseUrl());
 const owner = await resolveOwner(db);
-// the active extraction prompt version is always registered (MC-104)
-await recordPromptVersion(db);
+// all active prompt versions are registered (MC-203)
+await recordActivePromptVersions(db);
 
 const queueConnection = createConnection(redisUrl());
 const queues = createQueues(queueConnection);
