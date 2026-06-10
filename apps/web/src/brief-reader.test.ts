@@ -127,3 +127,28 @@ describe("BriefReaderPage", () => {
     await expect(Page({ params: Promise.resolve({ id: briefId }) })).rejects.toThrow("NEXT_REDIRECT");
   });
 });
+
+describe("BriefDebugPage", () => {
+  it("does not crash on a Phase-0 hello packet (no commitments array)", async () => {
+    await login();
+    const [packet] = await db
+      .insert(contextPackets)
+      .values({ ownerId, task: "cos.morning_brief", content: { hello: true, date: "2026-06-09" } })
+      .returning({ id: contextPackets.id });
+    const [brief] = await db
+      .insert(briefs)
+      .values({
+        ownerId,
+        kind: "morning",
+        dedupeKey: `morning:debug-test-${Date.now()}`,
+        contentJson: { hello: true },
+        contentMd: "Hello brief",
+        contextPacketId: packet!.id,
+      })
+      .returning({ id: briefs.id });
+
+    const { default: DebugPage } = await import("../app/briefs/[id]/debug/page");
+    // must render, not throw on packet.commitments.map
+    await expect(DebugPage({ params: Promise.resolve({ id: brief!.id }) })).resolves.toBeTruthy();
+  });
+});
