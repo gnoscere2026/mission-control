@@ -72,11 +72,18 @@ describe("assembleContextPacket", () => {
     expect(packet.schedule.map((s) => s.title)).toEqual(["Standup"]);
   });
 
-  it("is byte-identical for identical inputs (determinism)", async () => {
-    await db.insert(commitments).values({ ownerId, direction: "owed_by_me", description: "d", sourceType: "manual", status: "open" });
+  it("is byte-identical for identical inputs (determinism), including the snooze-wake boundary", async () => {
+    await db.insert(commitments).values([
+      { ownerId, direction: "owed_by_me", description: "d", sourceType: "manual", status: "open" },
+      // snooze expired relative to args.now — must appear, and identically on both runs
+      { ownerId, direction: "owed_by_me", description: "woken", sourceType: "manual", status: "open", snoozedUntil: new Date(NOW.getTime() - 1000) },
+      // still snoozed relative to args.now — must be absent on both runs
+      { ownerId, direction: "owed_by_me", description: "still snoozed", sourceType: "manual", status: "open", snoozedUntil: new Date(NOW.getTime() + 60_000) },
+    ]);
     const a = await assembleContextPacket(db, { ownerId, date: DATE, now: NOW, embedImpl: fakeEmbedImpl });
     const b = await assembleContextPacket(db, { ownerId, date: DATE, now: NOW, embedImpl: fakeEmbedImpl });
     expect(JSON.stringify(a.packet)).toBe(JSON.stringify(b.packet));
+    expect(a.packet.commitments.map((c) => c.description).sort()).toEqual(["d", "woken"]);
   });
 
   it("persists the packet row exactly as returned", async () => {

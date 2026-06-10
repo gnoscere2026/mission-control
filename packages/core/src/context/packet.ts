@@ -114,8 +114,9 @@ export async function assembleContextPacket(
       : [],
   }));
 
-  // 2. open commitments ranked: due asc nulls last, then age, then counterparty recency
-  const awake = or(isNull(commitments.snoozedUntil), lte(commitments.snoozedUntil, sql`now()`));
+  // 2. open commitments ranked: due asc nulls last, then age, then counterparty recency.
+  // Snooze wakes against args.now, not DB now() — determinism: same (date, now) → same packet.
+  const awake = or(isNull(commitments.snoozedUntil), lte(commitments.snoozedUntil, now));
   const rows = await db
     .select({
       id: commitments.id,
@@ -221,6 +222,7 @@ export async function assembleContextPacket(
   //    episodes (oldest first) → non-pinned memories (lowest rank first) → commitments
   //    (lowest rank first, never below MIN_COMMITMENTS_KEPT). Pinned memories never drop.
   const dropped = { recentEpisodes: 0, memories: 0, commitments: 0 };
+  let floorReached = false;
   while (estimateTokens(packet) > PACKET_TOKEN_BUDGET) {
     if (packet.recentEpisodes.length > 0) {
       packet.recentEpisodes.pop();
@@ -237,13 +239,15 @@ export async function assembleContextPacket(
       packet.commitments.pop();
       dropped.commitments++;
     } else {
-      packet.meta.truncations.push("over_budget: floor reached, sending anyway");
+      floorReached = true;
       break;
     }
   }
+  // truncations read in drop-priority order: episodes, memories, commitments
   for (const [k, n] of Object.entries(dropped)) {
-    if (n > 0) packet.meta.truncations.unshift(`${k}: dropped ${n}`);
+    if (n > 0) packet.meta.truncations.push(`${k}: dropped ${n}`);
   }
+  if (floorReached) packet.meta.truncations.push("over_budget: floor reached, sending anyway");
   packet.meta.tokenEstimate = estimateTokens(packet);
 
   const [inserted] = await db
