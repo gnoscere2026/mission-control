@@ -72,12 +72,22 @@ export default function CaptureChat() {
   }
 
   async function pin(m: Message) {
-    const res = await fetch("/api/memories", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ content: m.text, sourceEpisodeId: m.id }),
-    });
-    if (res.ok) setPinned((p) => new Set(p).add(m.id));
+    // optimistic disable guards double-click double-pins; rollback on failure
+    setPinned((p) => new Set(p).add(m.id));
+    try {
+      const res = await fetch("/api/memories", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content: m.text, sourceEpisodeId: m.id }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch {
+      setPinned((p) => {
+        const next = new Set(p);
+        next.delete(m.id);
+        return next;
+      });
+    }
   }
 
   async function disposition(id: string, kind: "confirm" | "reject") {
