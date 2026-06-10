@@ -18,11 +18,13 @@ export async function markBriefPushed(db: Db, ownerId: string, briefId: string):
     .where(and(eq(briefs.ownerId, ownerId), eq(briefs.id, briefId), isNull(briefs.pushedAt)));
 }
 
-export async function markBriefOpened(db: Db, ownerId: string, briefId: string): Promise<void> {
-  await db
+export async function markBriefOpened(db: Db, ownerId: string, briefId: string): Promise<boolean> {
+  const rows = await db
     .update(briefs)
     .set({ openedAt: new Date() })
-    .where(and(eq(briefs.ownerId, ownerId), eq(briefs.id, briefId), isNull(briefs.openedAt)));
+    .where(and(eq(briefs.ownerId, ownerId), eq(briefs.id, briefId), isNull(briefs.openedAt)))
+    .returning({ id: briefs.id });
+  return rows.length > 0;
 }
 
 export async function getBriefForDelivery(db: Db, ownerId: string, briefId: string) {

@@ -1,7 +1,10 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
   briefs,
   cadenceRuns,
+  commitments,
+  contextPackets,
+  episodes,
   pushSubscriptions,
   runSteps,
   users,
@@ -103,4 +106,30 @@ export async function getRun(db: Db, ownerId: string, runId: string) {
 
 export async function listRunSteps(db: Db, runId: string) {
   return db.select().from(runSteps).where(eq(runSteps.runId, runId)).orderBy(asc(runSteps.seq));
+}
+
+export async function getContextPacket(db: Db, ownerId: string, id: string) {
+  const [row] = await db
+    .select()
+    .from(contextPackets)
+    .where(and(eq(contextPackets.ownerId, ownerId), eq(contextPackets.id, id)));
+  return row;
+}
+
+// "why did you say this?": packet commitments → source excerpt → source episode (MC-203)
+export async function listCommitmentSources(db: Db, ownerId: string, ids: string[]) {
+  if (ids.length === 0) return [];
+  return db
+    .select({
+      id: commitments.id,
+      description: commitments.description,
+      sourceType: commitments.sourceType,
+      sourceRef: commitments.sourceRef,
+      sourceExcerpt: commitments.sourceExcerpt,
+      episodeSummary: episodes.summary,
+      episodeOccurredAt: episodes.occurredAt,
+    })
+    .from(commitments)
+    .leftJoin(episodes, eq(commitments.sourceEpisodeId, episodes.id))
+    .where(and(eq(commitments.ownerId, ownerId), inArray(commitments.id, ids)));
 }
