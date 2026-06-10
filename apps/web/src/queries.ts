@@ -1,10 +1,11 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   briefs,
   cadenceRuns,
   commitments,
   contextPackets,
   episodes,
+  modelCalls,
   pushSubscriptions,
   runSteps,
   users,
@@ -132,4 +133,29 @@ export async function listCommitmentSources(db: Db, ownerId: string, ids: string
     .from(commitments)
     .leftJoin(episodes, eq(commitments.sourceEpisodeId, episodes.id))
     .where(and(eq(commitments.ownerId, ownerId), inArray(commitments.id, ids)));
+}
+
+// MC-204: push delivery health — all subscriptions for the owner, newest first.
+export async function listPushSubscriptions(db: Db, ownerId: string) {
+  return db
+    .select()
+    .from(pushSubscriptions)
+    .where(eq(pushSubscriptions.ownerId, ownerId))
+    .orderBy(desc(pushSubscriptions.createdAt));
+}
+
+// MC-204: today's model spend (Denver-day boundary), rounded to 2 decimal places.
+export async function dailyModelSpendUsd(db: Db, ownerId: string): Promise<string> {
+  const [row] = await db
+    .select({
+      total: sql<string>`coalesce(sum(${modelCalls.costUsd}), 0)::numeric(12,2)`,
+    })
+    .from(modelCalls)
+    .where(
+      and(
+        eq(modelCalls.ownerId, ownerId),
+        sql`${modelCalls.createdAt} >= (date_trunc('day', now() at time zone 'America/Denver') at time zone 'America/Denver')`,
+      ),
+    );
+  return row?.total ?? "0.00";
 }
