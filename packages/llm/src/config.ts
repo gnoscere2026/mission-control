@@ -26,6 +26,7 @@ export const MODEL_PRICES: Record<
 // a task must be consciously registered with a tier, never defaulted.
 export const TASK_TIERS: Record<string, Exclude<Tier, "embed">> = {
   "cos.extract_commitments": "cheap",
+  "cos.morning_brief": "top",
   "eval.match_judge": "cheap",
 };
 
