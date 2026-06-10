@@ -4,3 +4,4 @@ export * from "./delivery";
 export * from "./morning_brief.v1";
 export * from "./active";
 export * from "./prompt-registry";
+export * from "./render-morning";
