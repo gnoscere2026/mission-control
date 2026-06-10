@@ -153,9 +153,15 @@ describe("notify processor", () => {
   // (c) per-channel retry: brief already has emailedAt set (simulate retry after
   //     email-success/push-fail) → email step "skipped", email sender NOT called, push attempted.
   it("brief already emailedAt → email step skipped, sender not called, push attempted", async () => {
+    await db
+      .insert(pushSubscriptions)
+      .values({ ownerId: ctx.owner.id, endpoint: `https://push.example/retry-skip-${Date.now()}`, p256dh: "p", auth: "a" })
+      .onConflictDoNothing();
     const emailSendCalls: unknown[] = [];
+    const pushSendCalls: unknown[] = [];
     const processor = makeNotifyProcessor(ctx, {
       email: { send: async (m) => void emailSendCalls.push(m) },
+      push: { send: async (m) => void pushSendCalls.push(m) },
     });
     const briefId = await makeBrief("retry-email-skip");
     // Simulate: a previous attempt already delivered the email
@@ -180,6 +186,10 @@ describe("notify processor", () => {
     const emailStep = steps.find((s) => s.name === "email");
     expect(emailStep?.status).toBe("skipped");
     expect((emailStep?.detail as { reason?: string })?.reason).toBe("already_emailed");
+    // push was genuinely attempted (subscription seeded above, stub send succeeds)
+    const pushStep = steps.find((s) => s.name === "push");
+    expect(pushStep?.status).toBe("ok");
+    expect(pushSendCalls.length).toBeGreaterThan(0);
   });
 
   // (d) both already delivered → both steps "skipped", senders not called, run succeeds.
