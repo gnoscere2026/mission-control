@@ -24,10 +24,12 @@ beforeAll(async () => {
   ownerId = u!.id;
 });
 
+// Sentinel values contain "-", which cannot occur in base64 ciphertext — the
+// plaintext-leak assertions below are deterministic, not probabilistic.
 function tokens(expiryMs: number): GoogleTokens {
   return {
     access_token: "fresh-at",
-    refresh_token: "rt",
+    refresh_token: "rt-secret-value",
     expiry_date: expiryMs,
     token_type: "Bearer",
     scope: GOOGLE_SCOPES.join(" "),
@@ -65,7 +67,7 @@ describe("getValidAccessToken", () => {
     const stored = JSON.parse(await unsealToken(row!.encryptedTokens, sealKey)) as GoogleTokens;
     expect(stored.access_token).toBe("new-at");
     // the refresh token survives a response that omits it
-    expect(stored.refresh_token).toBe("rt");
+    expect(stored.refresh_token).toBe("rt-secret-value");
   });
 
   it("flags reauth_required and throws on invalid_grant", async () => {
@@ -103,6 +105,6 @@ describe("getValidAccessToken", () => {
     const accountId = await seedAccount("cipher@example.com", tokens(Date.now() + 3_600_000));
     const [row] = await db.select().from(googleAccounts).where(eq(googleAccounts.id, accountId));
     expect(row!.encryptedTokens).not.toContain("fresh-at");
-    expect(row!.encryptedTokens).not.toContain("rt");
+    expect(row!.encryptedTokens).not.toContain("rt-secret-value");
   });
 });
