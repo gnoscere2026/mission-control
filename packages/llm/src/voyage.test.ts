@@ -1,5 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createVoyageAdapter } from "./voyage";
+
+// the missing-key case deletes the var — restore so no state leaks across tests
+afterEach(() => {
+  process.env.VOYAGE_API_KEY = "test-key";
+});
 
 function fakeFetch(status: number, body: unknown) {
   return vi.fn(async () => new Response(JSON.stringify(body), { status })) as unknown as typeof fetch;

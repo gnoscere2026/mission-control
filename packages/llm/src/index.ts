@@ -6,4 +6,5 @@ export * from "./config";
 export * from "./types";
 export * from "./complete";
 export * from "./embed";
-export * from "./voyage";
+// ./voyage is deliberately NOT exported: the adapter factory would let callers
+// bypass embed() and its model_calls write (same treatment as ./anthropic).
